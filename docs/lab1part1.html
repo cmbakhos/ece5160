@@ -22,9 +22,9 @@
 		<img src="images/serial output.png" alt="images/Sami.jpg" width=750\>
 
 		<h3>Four</h3>
-		<p>***************GET A BETTER EVIDENCE***************</p>
+		<p>As with the previous examples, I was able to compile and run this one. Based on the video below, when I place my thumb on the chip package the temperature raises from around 77 to around 86. Shoutout to the faint Duolingo Korean in the background.</p>
 		<video width="750" controls>
-			<source src="images/.mov">
+			<source src="images/temperature demo.mp4">
 			The video is not working.
 		</video>
 		
@@ -38,8 +38,20 @@
 		<h2>ECE 5160</h2>
 
 		<h3>One</h3>
-		<p>For 5160 students, we had to try to combine the microphone code and the LED code to be able to turn the LED on when the microphone detects a certain frequency of an A note, which is around 440 Hz. I was able to achieve this by using the return value of the printLoudest(); function, which is the loudest frequency (in other words, the frequency that is predominantly being heard from the environment). If this value is within about 10 Hz on either side of 440 Hz (accounting for error), we can be fairly confident that we are hearing an A note and we can turn on the LED. Otherwise, we can turn off the LED. Below is a snippet of my code that did this.
+		<p>For 5160 students, we had to try to combine the microphone code and the LED code to be able to turn the LED on when the microphone detects a certain frequency of an A note, which is around 440 Hz. I was able to achieve this by using the return value of the printLoudest(); function, which is the loudest frequency (in other words, the frequency that is predominantly being heard from the environment). If this value is within about 10 Hz on either side of 440 Hz (accounting for error), we can be fairly confident that we are hearing an A note and we can turn on the LED. Otherwise, we can turn off the LED. Below is a snippet of the code that did this.
 </p>
+		<p style="font-family: Courier New">
+// Check if the frequency matches A<br>
+uint32_t frequencyForChecking = printLoudest();<br>
+if( frequencyForChecking >=430 && frequencyForChecking < 449 ) {<br>
+&emsp;&emsp;digitalWrite(LED_BUILTIN, HIGH);  // turn the LED on (HIGH is the voltage level)<br>
+}<br>
+else {<br>
+&emsp;&emsp;digitalWrite(LED_BUILTIN, LOW);   // turn the LED off by making the voltage LOW<br>
+}</p>
+
+		<p>And to show this in action, here is a video of this being run on the Artemis.</p>
+
 		<video width="750" controls>
 			<source src="images/a note demo.mp4">
 			The video is not working.
@@ -47,6 +59,6 @@
 
 		<h3>Discussion</h3>
 		
-		<p><a href="index.html">Return home.</a></p>
+		<p><a href="index.html">Return home.</a> <a href="lab1part2.html">Next lab.</a></p>
 	</body>
 </html>
