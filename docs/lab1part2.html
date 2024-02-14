@@ -24,15 +24,17 @@
 		<p>Getting the time from the Arduino can be helpful for debugging later. The first line in the Jupyter notebook entry is sending the command for the time to the Artemis. The second line prints the read result from the Artemis. This is repeated two more times, just to see if it seems to be working as expected.</p>
 		<img src="images/get time millis.png" alt="images/Sami.jpg" width=750\>
 		<p>Here is a code snippet showing the Arduino’s end of things. It simply samples the time and writes it to the tx_characteristic_string for the computer to see.</p>
+		
 		<p style="font-family: Courier New">
-case GET_TIME_MILLIS:<br>
-&emsp;&emsp;tx_estring_value.clear();<br>
-&emsp;&emsp;tx_estring_value.append( "T:" );<br>
-&emsp;&emsp;tx_estring_value.append( (int) millis() );<br>
-&emsp;&emsp;tx_characteristic_string.writeValue( tx_estring_value.c_str() );<br><br>
-&emsp;&emsp;Serial.print( "Sent back: " );<br>
-&emsp;&emsp;Serial.println( tx_estring_value.c_str() );<br>
-&emsp;&emsp;break;<br></p>
+		case GET_TIME_MILLIS:<br>
+		&emsp;&emsp;tx_estring_value.clear();<br>
+		&emsp;&emsp;tx_estring_value.append( "T:" );<br>
+		&emsp;&emsp;tx_estring_value.append( (int) millis() );<br>
+		&emsp;&emsp;tx_characteristic_string.writeValue( tx_estring_value.c_str() );<br><br>
+		&emsp;&emsp;Serial.print( "Sent back: " );<br>
+		&emsp;&emsp;Serial.println( tx_estring_value.c_str() );<br>
+		&emsp;&emsp;break;<br>
+		</p>
 
 		<h3>Three</h3>
 		<p>Setting up a notification handler allows us not to have to manually check for what the Artemis does. This will help us later, even later on in this lab.</p>
@@ -46,28 +48,30 @@ case GET_TIME_MILLIS:<br>
 		
 		<h3>Five</h3>
 		<p>The code snippet below shows the logic of storing and sending the time data. The command MILLI_ARRAY just tells the Artemis to store the time data into time_array, and SEND_TIME_DATA just tells it to send it from the time_array instead of sampling the time and sending it as before.</p>
+		
 		<p style="font-family: Courier New">
-/*<br>
-* MILLI_ARRAY<br>
-*/<br>
-case MILLI_ARRAY:<br>
-&emsp;&emsp;for( int i = 0; i < TIME_ARRAY_SIZE; i++ ) {<br>
-&emsp;&emsp;&emsp;&emsp;time_array[i] = (int) millis();<br>
-&emsp;&emsp;}<br>
-&emsp;&emsp;break;<br><br>
-/*<br>
-* SEND_TIME_DATA<br>
-*/<br>
-case SEND_TIME_DATA:<br>
-&emsp;&emsp;for( int i = 0; i < TIME_ARRAY_SIZE; i++ ) {<br>
-&emsp;&emsp;&emsp;&emsp;tx_estring_value.clear();<br>
-&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( "T:" );<br>
-&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( time_array[i] );<br>
-&emsp;&emsp;&emsp;&emsp;tx_characteristic_string.writeValue( tx_estring_value.c_str() );<br><br>
-&emsp;&emsp;&emsp;&emsp;Serial.print( "Sent back: " );<br>
-&emsp;&emsp;&emsp;&emsp;Serial.println( tx_estring_value.c_str() );<br>
-&emsp;&emsp;}<br>
-&emsp;&emsp;break;</p>
+		/*<br>
+		* MILLI_ARRAY<br>
+		*/<br>
+		case MILLI_ARRAY:<br>
+		&emsp;&emsp;for( int i = 0; i < TIME_ARRAY_SIZE; i++ ) {<br>
+		&emsp;&emsp;&emsp;&emsp;time_array[i] = (int) millis();<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;break;<br><br>
+		/*<br>
+		* SEND_TIME_DATA<br>
+		*/<br>
+		case SEND_TIME_DATA:<br>
+		&emsp;&emsp;for( int i = 0; i < TIME_ARRAY_SIZE; i++ ) {<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.clear();<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( "T:" );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( time_array[i] );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_characteristic_string.writeValue( tx_estring_value.c_str() );<br><br>
+		&emsp;&emsp;&emsp;&emsp;Serial.print( "Sent back: " );<br>
+		&emsp;&emsp;&emsp;&emsp;Serial.println( tx_estring_value.c_str() );<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;break;
+		</p>
 
 		<p>Thinking then to the Jupyter Notebook, the following image shows the resulting time array that has been received and reconstructed.</p>
 		<img src="images/time array.png" alt="images/Sami.jpg" width=750\>

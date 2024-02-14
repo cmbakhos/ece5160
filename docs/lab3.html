@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Lab3</title>
+		<link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+	</head>
+	<body>
+		<h1>Lab 3</h1>
+		<p><a href="lab2.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab4.html">Next lab.</a></p>
+		
+		<h2>ECE 4160</h2>
+		
+		<h3>Prelab</h3>
+		<p>In this lab, we will be working with the VL53L1X Time of Flight (ToF) sensor. According to the datasheet, it has an I2C address of 0x52 when the ToF sensor reads from the Artemis, and 0x53 for when the Artemis is receiving data. We have two of these ToF sensors with the same I2C address. The address can be changed. However, both sensors will be connected listening, so we need a way to just change one and not the other. The VL53L1X has a pin called XSHUT (Xshutdown), which when low, the chip enters hardware standby mode, which is important in terms of disabling I2C communication. This should allow us to change the address of one without changing the address of the other, preventing address collisions when we want to communicate with them.</p>
+		<p>Though it is possible to just communicate with one at a time by disabling the other, I think it will be easier to coordinate communication with both devices by just changing the address of one of them, instead of maintaining that only one sensor be not in hardware standby at any time.</p>
+		<p>To start to consider where I will place the sensors on my robot, it is important to consider what kind of Field of View (FOV) the sensors have. The datasheet states the assumption that the ToF sensors typically have a FOV of about 27 degrees. So one thing to consider would be placing the sensors where they won't be blocked. On the sides of the car, between the wheels, for example, does not seem like not a viable option. One obvious location would be the front or back of the car. Another possible location would be the top of the car, which could prove useful if the car is doing flips. However, I don't think it would realistically be worth it to place a sensor there, as it would almost always be pointing at the ground or at the sky. Putting both on the front would not be quite useful, as the car will often be moving backwards, and it would be doing so blindly. I, was led to believe the best would then be one in the front and one in the back, however, looking at cars from years past, it seems they opt for a sensor on the side because of the difficult wiring of putting it on the back. Below is a diagram of how I have chosen to wire the sensors and the Artemis together.</p>
+		<img src="images/wiring diagram.png" alt="images/Sami.jpg" width=750\>
+		
+		<h3>Lab Tasks</h3>
+		<table>
+			<tr>
+				<td><figure>
+					<img src="images/tof front multi port.png" alt="images/Sami.jpg" width=500\>
+					<figcaption>The Time of Flight sensor connected to the SparkFun Qwiic Multi Port is shown. The front of the ToF sensor is on display here, meanwhile the back of the Multi Port is shown.</figcaption>
+				</figure></td>
+				<td><figure>
+					<img src="images/tof back multi port.png" alt="images/Sami.jpg" width=500\>
+					<figcaption>The ToF connected to the Multi Port, except the back of the ToF and the front of the Multi Port are shown.</figcaption>
+				</figure></td>
+			</tr>
+		</table>
+		
+		<img src="images/i2c scanning.png" alt="images/Sami.jpg" width=450\>
+		<p>*****Insert discussion on i2c and addresses*****</p>
+	</body>
+</html>
