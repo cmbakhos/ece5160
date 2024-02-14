@@ -76,7 +76,31 @@
 		}
 		</p>
 
-		<p>This code is done in the write_data() function, so as to allow the data to be gathered at the speed of the main loop, and only when we want to, as it is ignored if get_IMU_data is false. The code to send is done in the read_data() function, and it is also ignored unless we are explicitly trying to send data.</p>
+		<p>And...</p>
+
+		<p style="font-family: Courier New">
+		// Whether or not we want to gather IMU data, if we want to send it, we will send it.<br>
+		if( send_IMU_data ) {<br>
+		&emsp;&emsp;for( int i = 0; i < IMU_entries_gathered; i++ ) {<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.clear();<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( "Time: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( time_array[i] );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( " Pitch: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( pitch_array[i] );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( " Roll: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( roll_array[i] );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_characteristic_string.writeValue( tx_estring_value.c_str() );<br><br>
+		&emsp;&emsp;&emsp;&emsp;Serial.print( "Sent back: " );<br>
+		&emsp;&emsp;&emsp;&emsp;Serial.println( tx_estring_value.c_str() );<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;// We don't want to get stuck in a horrible Bluetooth loop<br>
+		&emsp;&emsp;send_IMU_data = false;<br>
+		&emsp;&emsp;// When we are done sending the data, we need to essentially wipe the array clean by just resetting the index, or the IMU_entries_gathered<br>
+		&emsp;&emsp;IMU_entries_gathered = 0;<br>
+		}
+		</p>
+
+		<p>The code to collect is done in the write_data() function, so as to allow the data to be gathered at the speed of the main loop, and only when we want to, as it is ignored if get_IMU_data is false. The code to send is done in the read_data() function, and it is also ignored unless we are explicitly trying to send data. The flag get_IMU_data is set by the command GET_ACCELEROMETER_DATA, and the flag send_IMU_data can also be set by the command SEND_ACCELEROMETER_DATA. However, I found I never used that command and just waited for the IMU array filling mechanism to flip that flag for me.</p>
 
 		<p>Once we have gathered and sent the IMU data to the computer, we now need to run an FFT on it. We collected time data, so as to allow us to see the accelerometer data versus time, along with the pitch and roll. The code segment below shows how the Python FFT was performed on the data, where pitch_y and roll_y are the Fourier data of the pitch and roll respectively.</p>
 
@@ -101,8 +125,65 @@
 			</tr>
 		</table>
 
+		<p>Now, with the robot on, these were the resulting graphs.</p>
+
+		<table>
+			<tr>
+				<td><img src="images/time domain pitch signal (robot on).png" alt="images/Sami.jpg" width=450\></td>
+				<td><img src="images/time domain roll signal (robot on).png" alt="images/Sami.jpg" width=450\></td>
+			</tr>
+			<tr>
+				<td><img src="images/frequency domain pitch signal (robot on).png" alt="images/Sami.jpg" width=450\></td>
+				<td><img src="images/frequency domain pitch signal (robot on).png" alt="images/Sami.jpg" width=450\></td>
+			</tr>
+		</table>
+
+		<p>Admittedly, I believe this increase in noise was likely due to my shaking the IMU much more than any robot interference. There doesn't seem to be much more in the way of high-frequency noise, though I am sure a low-pass filter would still smooth things out and make the readings more workable. While there is noise in the graphs all the way to the lowest frequencies, it might be good to choose a lower frequency for the cutoff to start off to remove a reasonable amount of the noise.</p>
+
+		<p>It is also important to consider the sampling rate of the IMU. Over the course of 3979 milliseconds, it collected 1024 samples. This is about 257 samples per second. Thinking back to the Nyquist-Shannon sampling theorem, we will pick up on meaningful noise below 128.5 Hz, meaning that our filter should be a reasonable amount lower than that. Perhaps on the order of 50 or so Hz for the cutoff frequency might be a good place to start.</p>
+
+		<p>Using this, I implemented a low-pass filter. I used a cutoff frequency of 50 Hz, meaning an RC constant of 0.003183. I assumed 257 samples per second, meaning a T of 0.003891. Using these, alpha was calculated to be about 0.55. In my implementation, I found it easier just to use roll as the pitch's low-pass output instead of programming a lot more in the way of new arrays for data and transmitting all of that data.</p>
+
+		<p style="font-family: Courier New">
+		roll_array[IMU_entries_gathered] = alpha * pitch_array[IMU_entries_gathered] + ( 1 - alpha ) * ( IMU_entries_gathered == 0 ? 0 : roll_array[IMU_entries_gathered - 1] );
+		</p>
+
+		<img src="images/alpha 0.55 low-pass pitch.png" alt="images/Sami.jpg" width=750\>
+
+		<p>The blue graph is the unfiltered pitch, while the orange graph is the low-pass output for the pitch. It definitely does help those big spikes, but it is not much smoother. Perhaps a cutoff frequency of 25 might smooth it out more.</p>
+
+		<img src="images/alpha 0.38 low-pass pitch.png" alt="images/Sami.jpg" width=750\>
+
+		<p>It does seem to be a bit smoother at an alpha of 0.38, and I'm sure this could be taken even further, need be.</p>
+
 		<h3>Gyroscope</h3>
+
+		
+
 		<h3>Sample Data</h3>
+
+		<p>In terms of speeding up the main loop, I basically had done that already in order to collect the data for the accelerometer. There is no waiting for the IMU, no delays, and no Serial.print() statements in the sampling code. I previously had found my board could sample at around 257 Hz. My main loop is only a little faster than this, running at around 276 Hz, as it collected 1024 samples in 3711 milliseconds.</p>
+
+		<p>Once again, I already collected the IMU data in arrays using flags in the main loop. The code snippets for this can be seen in the accelerometer section.</p>
+
+		<p>In terms of data storage, I opted for separate arrays to store my data. The individual lengths of the arrays can be adjusted to correspond to the relative frequency at which the data can be sampled. Also, in my mind, it is easier to work with separate arrays than one giant array. You can have different data types for each array instead of being forced into one data type for one large array.</p>
+
+		<p>In terms of the data type, it depends, but strings should generally be avoided when storing numbers. They use one byte per character, and for an integer with 5 digits, it would take 5 bytes, whereas a 5 digit integer, if less than 65536, could be stored in two bytes, which is much more memory dense! If great precision is needed, doubles are a good idea, but they are quite large in memory usage, so they should be used sparingly. Most of the time, floats should be sufficient for decimal values.</p>
+
+		<p>In terms of the amount of memory the Artemis has for variables, it seems to be 393216 bytes, according to the output of the Arduino IDE console. Assuming we're only storing 32-bit integers, or 4-byte integers, that gives us an array of length 98304 samples with which to work. Assuming 257 samples per second, this should give us about 382 seconds total, with only about 1285 samples being needed to record the five minutes requested.</p>
+
+		<img src="images/393216 bytes.png" alt="images/Sami.jpg" width=1000\>
+
+		<p>The time of the recorded data ranges from 57757 milliseconds to 65629 milliseconds. This represents a time difference of 7872 milliseconds, or 7.872 seconds.</p>
+
+		<table>
+			<tr>
+				<td><img src="images/seven second time range.png" alt="images/Sami.jpg" width=300\></td>
+				<td><img src="images/seven second start.png" alt="images/Sami.jpg" width=400\></td>
+				<td><img src="images/seven second end.png" alt="images/Sami.jpg" width=400\></td>
+			</tr>
+		</table>
+
 		<h3>Stunt Car Testing</h3>
 		<video width="750" controls>
 			<source src="videos/manual stunt car control.mp4">
