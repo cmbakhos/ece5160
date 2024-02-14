@@ -158,7 +158,33 @@
 
 		<h3>Gyroscope</h3>
 
-		
+		<p>Well, perhaps the first thing to note is that we can actually get a value for yaw with the gyroscope, whereas with the accelerometer, we could not. The same thing goes for the filtered accelerometer data. There simply was no yaw value.</p>
+
+		<p>One very noticable difference as well is that at the 90 degree angle for one measurement, the other measurements are quite stable. This was absolutely not the case with pitch and roll with the accelerometer, where the slightest change brought it from -90 to 90, and anywhere in between was incredibly jittery. And that was also the case with the filtered accelerometer readings.</p>
+
+		<p>Another difference is that the calculated positions are not absolute, as they were with the accelerometer. It varies based on the speed of rotation and previous positions. This can make for some difficulties. This is also related to the drift, which occurs over time and will slowly approach a steady-state value for the measurements if the IMU is left alone. This ultimately means it can take some pretty strange values over time.</p>
+
+		<table>
+			<tr>
+				<td><img src="images/strange values 0.png" alt="images/Sami.jpg" width=450\></td>
+				<td><img src="images/strange values 1.png" alt="images/Sami.jpg" width=450\></td>
+			<tr>
+				<td><img src="images/strange values 2.png" alt="images/Sami.jpg" width=450\></td>
+				<td><img src="images/strange values 3.png" alt="images/Sami.jpg" width=450\></td>
+			</tr>
+		</table>
+
+		<p>For the complimentary filter, it seems much more stable. Leaving the IMU on the table, it rarely jitters beyond one degree of error. By weighing the accelerometer data equal to the gyroscopic data (alpha = 0.5), the drift from the gyroscope has an even lesser effect than it previously did. Leaving The gyroscope alone for well over two minutes did not change the value of pitch or roll visibly at all. Meanwhile, the change in yaw from drift is very clear.</p>
+
+		<table>
+			<tr>
+				<td><img src="images/complimentary drift 18 seconds.png" alt="images/Sami.jpg" width=400\></td>
+				<td>|</td>
+				<td><img src="images/complimentary drift 139 seconds.png" alt="images/Sami.jpg" width=400\></td>
+				<td>|</td>
+				<td><img src="images/complimentary drift 249 seconds.png" alt="images/Sami.jpg" width=400\></td>
+			</tr>
+		</table>
 
 		<h3>Sample Data</h3>
 
