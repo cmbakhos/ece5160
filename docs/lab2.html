@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Lab 2</title>
+		<link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+	</head>
+	<body>
+		<h1>Lab 2</h1>
+		<p><a href="index.html">Return home.</a></p>
+
+		<h2>ECE 4160</h2>
+		
+		<h3>IMU Setup</h3>
+
+		<p>In lecture, I had previously connected the IMU to the Artemis via the QWIIC cable.</p>
+		<img src="images/imu connected.jpg" alt="images/Sami.jpg" width=750\>
+		<p>For my IMU to work, I had to set AD0_VAL to 0 instead of the default 1. AD0_VAL is the value of the last bit of the I2C address, which is used for communication between the IMU and the Artemis. Because this has to be 0 for my IMU to work, the I2C address of my IMU is 0x68 and not 0x69. Once this was done, the IMU demo code worked (see below the Serial output).</p>
+		<img src="images/imu demo.png" alt="images/Sami.jpg" width=850\>
+		<p>When rotating the board around the board's x axis, the accelerometer data for y and z change, while the gyroscope data for x changes. When rotating the board around the board's y axis, the accelerometer data for x and z change, while the gyroscope data for y changes. When rotating the board around the board's z axis, the accelerometer data does not change, but the gyroscope data for z does. Below is an image of the axes printed on the chip.</p>
+		<img src="images/imu axes.jpg" alt="images/Sami.jpg" width=750\>
+		<p>The next image represents the rotations that change the accelerometer data. The top left arrows shows the orientation of the axes. The rotation arrow on the top shows rotation around the x axis, or roll. The rotation arrow on the right shows rotation around the y axis, or pitch.</p>
+		<img src="images/imu rotation.jpg" alt="images/Sami.jpg" width=750\>
+
+		<h3>Accelerometer</h3>
+
+		<p>The next step is to use this to calculate the pitch and roll with respect to the axes of the IMU. The table below shows the pictures of the Serial output of the following orientations.</p>
+		<table>
+			<tr>
+				<th>Pitch: -90, Roll: 0</th>
+				<th>Pitch: 0, Roll: -90</th>
+				<th>Pitch: 0, Roll: 0</th>
+				<th>Pitch: 0, Roll: 90</th>
+				<th>Pitch: 90, Roll: 0</th>
+			</tr>
+			<tr>
+				<td><img src="images/pitch -90 roll 0.png" alt="images/Sami.jpg" width=250\></td>
+				<td><img src="images/pitch 0 roll -90.png" alt="images/Sami.jpg" width=250\></td>
+				<td><img src="images/pitch 0 roll 0.png" alt="images/Sami.jpg" width=250\></td>
+				<td><img src="images/pitch 0 roll 90.png" alt="images/Sami.jpg" width=250\></td>
+				<td><img src="images/pitch -90 roll 0.png" alt="images/Sami.jpg" width=250\></td>
+			</tr>
+		</table>
+		<p>I used the following to get the pitch and roll:</p>
+
+		<p style="font-family: Courier New">
+			pitch_a = atan2( ICM.accX(), ICM.accZ() ) * 180/M_PI;<br>
+			roll_a = atan2( ICM.accY(), ICM.accZ() ) * 180/M_PI;
+		</p>
+		
+		<p>My accelerometer isn't very accurate. When one measurement is at 90 degrees, the other measurement is quite jittery. Only when they are both around 0 is it more stable, but even then, it still isn't quite accurate. I could have attempted to adjust using a two-point calibration, but I honestly think that once I get a filter on these values, they will be much more accurate, even if off by only a few degrees.</p>
+
+		<h3>Gyroscope</h3>
+		<h3>Sample Data</h3>
+		<h3>IMU Setup</h3>
+		<h3>Stunt Car Testing</h3>
+		<video width="750" controls>
+			<source src="videos/manual stunt car control.mp4">
+			The video is not working.
+		</video>
+		<p>I unfortunately did not get to record a video of the stunt car with the Arduino, as that would have required soldering and getting the Artemis powered separately from my computer. I'd imagine, though, that Artemis would be able to collect some data that could be useful for learning what data might need to look like in future labs when certain stunts are being performed, when I am not controlling the robot with the remote.</p>
+
+		<p><a href="lab1part2.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab3.html">Next lab.</a></p>
+	</body>
+</html>
