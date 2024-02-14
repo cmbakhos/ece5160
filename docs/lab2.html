@@ -13,13 +13,13 @@
 		<h3>IMU Setup</h3>
 
 		<p>In lecture, I had previously connected the IMU to the Artemis via the QWIIC cable.</p>
-		<img src="images/imu connected.jpg" alt="images/Sami.jpg" width=750\>
+		<img src="images/imu connected.jpg" alt="images/Sami.jpg" width=450\>
 		<p>For my IMU to work, I had to set AD0_VAL to 0 instead of the default 1. AD0_VAL is the value of the last bit of the I2C address, which is used for communication between the IMU and the Artemis. Because this has to be 0 for my IMU to work, the I2C address of my IMU is 0x68 and not 0x69. Once this was done, the IMU demo code worked (see below the Serial output).</p>
-		<img src="images/imu demo.png" alt="images/Sami.jpg" width=850\>
+		<img src="images/imu demo.png" alt="images/Sami.jpg" width=1200\>
 		<p>When rotating the board around the board's x axis, the accelerometer data for y and z change, while the gyroscope data for x changes. When rotating the board around the board's y axis, the accelerometer data for x and z change, while the gyroscope data for y changes. When rotating the board around the board's z axis, the accelerometer data does not change, but the gyroscope data for z does. Below is an image of the axes printed on the chip.</p>
-		<img src="images/imu axes.jpg" alt="images/Sami.jpg" width=750\>
+		<img src="images/imu axes.jpg" alt="images/Sami.jpg" width=500\>
 		<p>The next image represents the rotations that change the accelerometer data. The top left arrows shows the orientation of the axes. The rotation arrow on the top shows rotation around the x axis, or roll. The rotation arrow on the right shows rotation around the y axis, or pitch.</p>
-		<img src="images/imu rotation.jpg" alt="images/Sami.jpg" width=750\>
+		<img src="images/imu rotation.jpg" alt="images/Sami.jpg" width=500\>
 
 		<h3>Accelerometer</h3>
 
@@ -49,14 +49,66 @@
 		
 		<p>My accelerometer isn't very accurate. When one measurement is at 90 degrees, the other measurement is quite jittery. Only when they are both around 0 is it more stable, but even then, it still isn't quite accurate. I could have attempted to adjust using a two-point calibration, but I honestly think that once I get a filter on these values, they will be much more accurate, even if off by only a few degrees.</p>
 
+		<p>To guide my choices regarding my complimentary lowpass filter for the accelerometer data, I needed to actually gather some data. I needed to figure out what kind of noise my robot would be producing that would interfere with this data. To start off, I needed to create a system for gathering and sending the data from the IMU to the computer for further analysis. This was relatively straightforward, given that something like it had already been done in the previous lab.</p>
+
+		<p style="font-family: Courier New">
+		// If we want to gather IMU data<br>
+		if( get_IMU_data ) {<br>
+		&emsp;&emsp;// But the IMU data is full<br>
+		&emsp;&emsp;if( IMU_entries_gathered >= IMU_ARRAY_SIZE ) {<br>
+		&emsp;&emsp;&emsp;&emsp;// Set that we don't want to send IMU data anymore<br>
+		&emsp;&emsp;&emsp;&emsp;get_IMU_data = false;<br>
+		&emsp;&emsp;&emsp;&emsp;// Set that we want to send our data<br>
+		&emsp;&emsp;&emsp;&emsp;send_IMU_data = true;<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;// If that previous condition was true (too much data), then it will skip this else.<br>
+		&emsp;&emsp;// If that previous condition was false (still room), then if the data is ready, this will execute collecting data.<br>
+		&emsp;&emsp;else if( ICM.dataReady() ) {<br>
+		&emsp;&emsp;&emsp;&emsp;// The values are only updated when you call 'getAGMT'<br>
+		&emsp;&emsp;&emsp;&emsp;ICM.getAGMT();<br>
+		&emsp;&emsp;&emsp;&emsp;// Gather the data into their respective arrays<br>
+		&emsp;&emsp;&emsp;&emsp;time_array[IMU_entries_gathered] = (int) millis();<br>
+		&emsp;&emsp;&emsp;&emsp;pitch_array[IMU_entries_gathered] = atan2( ICM.accX(), ICM.accZ() ) * 180/M_PI;<br>
+		&emsp;&emsp;&emsp;&emsp;roll_array[IMU_entries_gathered] = atan2( ICM.accY(), ICM.accZ() ) * 180/M_PI;<br>
+		&emsp;&emsp;&emsp;&emsp;// Increment the counter<br>
+		&emsp;&emsp;&emsp;&emsp;IMU_entries_gathered++;<br>
+		&emsp;&emsp;}<br>
+		}
+		</p>
+
+		<p>This code is done in the write_data() function, so as to allow the data to be gathered at the speed of the main loop, and only when we want to, as it is ignored if get_IMU_data is false. The code to send is done in the read_data() function, and it is also ignored unless we are explicitly trying to send data.</p>
+
+		<p>Once we have gathered and sent the IMU data to the computer, we now need to run an FFT on it. We collected time data, so as to allow us to see the accelerometer data versus time, along with the pitch and roll. The code segment below shows how the Python FFT was performed on the data, where pitch_y and roll_y are the Fourier data of the pitch and roll respectively.</p>
+
+		<p style="font-family: Courier New">
+		samples = len( time )<br>
+		freq_data_pitch = fft( pitch )<br>
+		freq_data_roll = fft( roll )<br>
+		pitch_y = 2/samples * np.abs( freq_data_pitch[0:np.uint64( samples / 2 )] )<br>
+		roll_y = 2/samples * np.abs( freq_data_roll[0:np.uint64( samples / 2 )] )<br>
+		</p>
+
+		<p>This yields the following graphs.</p>
+
+		<table>
+			<tr>
+				<td><img src="images/time domain pitch signal (robot off).png" alt="images/Sami.jpg" width=450\></td>
+				<td><img src="images/time domain roll signal (robot off).png" alt="images/Sami.jpg" width=450\></td>
+			</tr>
+			<tr>
+				<td><img src="images/frequency domain pitch signal (robot off).png" alt="images/Sami.jpg" width=450\></td>
+				<td><img src="images/frequency domain pitch signal (robot off).png" alt="images/Sami.jpg" width=450\></td>
+			</tr>
+		</table>
+
 		<h3>Gyroscope</h3>
 		<h3>Sample Data</h3>
-		<h3>IMU Setup</h3>
 		<h3>Stunt Car Testing</h3>
 		<video width="750" controls>
 			<source src="videos/manual stunt car control.mp4">
 			The video is not working.
 		</video>
+		<p>As is perhaps evident in the video, the car moves very quickly and is quite difficult to control precisely. I am curious how much that will carry over to how easily the robot will be able to be controlled with precision as we progress through the semester.</p>
 		<p>I unfortunately did not get to record a video of the stunt car with the Arduino, as that would have required soldering and getting the Artemis powered separately from my computer. I'd imagine, though, that Artemis would be able to collect some data that could be useful for learning what data might need to look like in future labs when certain stunts are being performed, when I am not controlling the robot with the remote.</p>
 
 		<p><a href="lab1part2.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab3.html">Next lab.</a></p>
