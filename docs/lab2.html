@@ -55,7 +55,7 @@
 		// If we want to gather IMU data<br>
 		if( get_IMU_data ) {<br>
 		&emsp;&emsp;// But the IMU data is full<br>
-		&emsp;&emsp;if( IMU_entries_gathered >= IMU_ARRAY_SIZE ) {<br>
+		&emsp;&emsp;if( IMU_entries_gathered &gt;= IMU_ARRAY_SIZE ) {<br>
 		&emsp;&emsp;&emsp;&emsp;// Set that we don't want to send IMU data anymore<br>
 		&emsp;&emsp;&emsp;&emsp;get_IMU_data = false;<br>
 		&emsp;&emsp;&emsp;&emsp;// Set that we want to send our data<br>
@@ -81,7 +81,7 @@
 		<p style="font-family: Courier New">
 		// Whether or not we want to gather IMU data, if we want to send it, we will send it.<br>
 		if( send_IMU_data ) {<br>
-		&emsp;&emsp;for( int i = 0; i < IMU_entries_gathered; i++ ) {<br>
+		&emsp;&emsp;for( int i = 0; i &lt; IMU_entries_gathered; i++ ) {<br>
 		&emsp;&emsp;&emsp;&emsp;tx_estring_value.clear();<br>
 		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( "Time: " );<br>
 		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( time_array[i] );<br>

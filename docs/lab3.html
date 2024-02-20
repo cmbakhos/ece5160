@@ -36,7 +36,8 @@
 		
 		<h3>Sensor Modes</h3>
 		<p>Looking at the datasheet for the different distance modes, the advantage of the short distance mode is that it is more resilient against noise. The advantage of the long distance mode is that it generally has the longest range, but the least resilience against noise. At long distance and strong ambient light, it actually has the least distance. The environments in which this car will drive will likely be in relatively bright environments, which makes me wonder if the short distance mode is a viable option to consider long-term. Whatever the long-term option may be, for now, I will opt to work with the short-range, as it is most resilient to noise and my robot shouldn't be moving fast enough to need a longer-range.</p>
-		<p>*****Insert testing data and all that stuff here*****</p>
+		<p>I planned to measure values from 100 millimeter up to 1000 millimeters, at increments of 100 millimeters. At each of these increments, I took 100 samples. Toward the start, the sensor was fairly reliable. Toward the end, however, the sensor started to become less and less reliable. At 700 millimeters, I shut off the lights for a second round of samples because the measurements were starting to get bad. This made the sampling even worse. From there it dropped off. At the end, I did another test with 100 millimeters to make sure the sensor wasn't broken during testing, however, the readings were pretty consistent with the first set of readings at 100 millimeters, so I left them out of the graph. To construct the graph, I just plotted each data point against the expected data point. This creates what will be columns centered around each 100-millimeter increment. This creates a nice visualization of the spread of the data at each increment.</p>
+		<img src="images/distance versus distance.png" alt="images/Sami.jpg" width=750\>
 		
 		<h3>Two ToF Sensors Connected</h3>
 		<p>Insert image. Insert screenshot of sensors working in parallel. Talk about it, probably.</p>
@@ -45,6 +46,49 @@
 		<p>Limiting factor and how I check for this</p>
 		
 		<h3>Time vs. Distance</h3>
+		<p>As with the previous lab, I had the Artemis gather the sensor data into an array. This time, however, because I will be gathering data from multiple sensors, I wanted the time to be more intimately connected with the data. So I used a struct with the distance and time data bundled together, and created an array of those structs. Below are the code snippets of how I did this.</p>
+		<p style="font-family: Courier New">
+		// Check if the data from the sensor is ready to be collected<br>
+		if( distance_sensor_front.checkForDataReady() ) {<br>
+		&emsp;&emsp;// Get the time as early as possible so it is most accurate to when data was gotten<br>
+		&emsp;&emsp;distance_array[distance_entries_gathered].time = (int) millis();<br>
+		&emsp;&emsp;// Get the result of the measurement from the sensor<br>
+		&emsp;&emsp;distance_array[distance_entries_gathered].distance = distance_sensor_front.getDistance();<br><br>
+
+		&emsp;&emsp;// Stop ranging and set ranging to false<br>
+		&emsp;&emsp;distance_sensor_front.clearInterrupt();<br>
+		&emsp;&emsp;distance_sensor_front.stopRanging();<br>
+		&emsp;&emsp;ranging = false;<br><br>
+		
+		&emsp;&emsp;// Increment our entries gathered variable.<br>
+		&emsp;&emsp;distance_entries_gathered++;<br>
+		}
+		</p>
+		
+		<p>And...</p>
+		
+		<p style="font-family: Courier New">
+		// Whether or not we want to gather distance data, if we want to send it, we will send it.<br>
+		if( send_distance_data ) {<br>
+		&emsp;&emsp;for( int i = 0; i &lt; distance_entries_gathered; i++ ) {<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.clear();<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( "Distance: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( distance_array[i].distance );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( " Time: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( distance_array[i].time );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_characteristic_string.writeValue( tx_estring_value.c_str() );<br><br>
+
+		&emsp;&emsp;&emsp;&emsp;Serial.println( tx_estring_value.c_str() );<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;// We don't want to get stuck in a horrible Bluetooth loop<br>
+		&emsp;&emsp;send_distance_data = false;<br>
+		&emsp;&emsp;// When we are done sending the data, we need to essentially wipe the array clean by just resetting the index, or the IMU_entries_gathered<br>
+		&emsp;&emsp;distance_entries_gathered = 0;<br>
+		}
+		</p>
+		
+		<p>Processing the data produced by this in the Jupyter Notebook allowed me to produce this plot. I moved the sensor around a lot at the start before putting it down, as it was taking longer than I expected it to.</p>
+		<img src="images/distance versus time.png" alt="images/Sami.jpg" width=750\>
 		
 		<h2>ECE 5160</h2>
 		
@@ -53,6 +97,7 @@
 		<p>Thanks to this page for the helpful rundown of infrared-based sensors! (external link) <a href="https://www.electronicsforu.com/technology-trends/learn-electronics/ir-led-infrared-sensor-basics">https://www.electronicsforu.com/technology-trends/learn-electronics/ir-led-infrared-sensor-basics</a>.</p>
 		
 		<h3>Sensitivity to Color and Texture</h3>
+		<p>At a range of 300 millimeters, the texture nor color don't seem to affect the readings much. I used a black fabric, a white fabric, a light blue fabric, a black glossy cardboard, a white glossy cardboard, and a light blue glossy cardboard, and none of them seemed to differ very much. If anything, the white glossy surface was measuring about 10 millimeters under 300, while the others seemed to mostly average 300 millimeters.</p>
 		
 		<p><a href="lab2.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab4.html">Next lab.</a></p>
 	</body>
