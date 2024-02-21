@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Lab 4</title>
+		<link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+	</head>
+	<body>
+		<h1>Lab 4</h1>
+		<p><a href="lab3.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab5.html">Next lab.</a></p>
+		
+		<h2>ECE 4160</h2>
+		
+		<h3>Prelab</h3>
+		<p></p>
+		<p>We power the Artemis and the motors/drivers with different batteries because the motors can draw a lot of current, especially when getting the motors started, turning the Artemis off and resetting program flow.</p>
+		
+		
+		
+		<p>Notes from soldering stuff. Solder out
+		One reasonable voltage for the power supply is 3.7 V, because that's what the batteries are.
+		In terms of connecting the motor control signals (pwm) from the artemis to the motor controllers, I chose to use shorter wires because it seems that the controllers and the Artemis won't be too far from each other.
+		I chose to twist the wires as much as I could, as these are PWM signals, which vary rapidly, which could cause parasitic capacitance.
+		The first oscilloscope image has two signals. The top blue one is the output from the B2/A2 output (green wire), while the bottom yellow is the PWM output from the Artemis. It is the input into input B2 and A2 (green wire). The white input to the motor driver is supposed to be 0. The output of the white is what Rafi seemed to call the "negative output voltage to the motor" which he claimed was supposed to be essentially 0. This can be seen in the second oscilloscope picture, where the blue signal remains what it was, and the yellow signal is just the probe connected to the yellow output wire (A1/B1). There are little spikies at every dip. Diode related?
+		All the grounds are connected. Artemis ground is motor ground.</p>
+		
+		<h2>ECE 5160</h2>
+		
+		<p><a href="lab3.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab5.html">Next lab.</a></p>
+	</body>
+</html>
