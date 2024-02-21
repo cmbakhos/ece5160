@@ -14,6 +14,7 @@
 		<p>In this lab, we will be working with the VL53L1X Time of Flight (ToF) sensor. According to the datasheet, it has an I2C address of 0x52 when the ToF sensor reads from the Artemis, and 0x53 for when the Artemis is receiving data. We have two of these ToF sensors with the same I2C address. The address can be changed. However, both sensors will be connected listening, so we need a way to just change one and not the other. The VL53L1X has a pin called XSHUT (Xshutdown), which when low, the chip enters hardware standby mode, which is important in terms of disabling I2C communication. This should allow us to change the address of one without changing the address of the other, preventing address collisions when we want to communicate with them.</p>
 		<p>Though it is possible to just communicate with one at a time by disabling the other, I think it will be easier to coordinate communication with both devices by just changing the address of one of them, instead of maintaining that only one sensor be not in hardware standby at any time.</p>
 		<p>To start to consider where I will place the sensors on my robot, it is important to consider what kind of Field of View (FOV) the sensors have. The datasheet states the assumption that the ToF sensors typically have a FOV of about 27 degrees. So one thing to consider would be placing the sensors where they won't be blocked. On the sides of the car, between the wheels, for example, does not seem like not a viable option. One obvious location would be the front or back of the car. Another possible location would be the top of the car, which could prove useful if the car is doing flips. However, I don't think it would realistically be worth it to place a sensor there, as it would almost always be pointing at the ground or at the sky. Putting both on the front would not be quite useful, as the car will often be moving backwards, and it would be doing so blindly. I, am led to believe the best would then be one in the front and one in the back.</p>
+		<p>Below is my wiring diagram, alongside what I actually assembled.</p>
 		<img src="images/wiring diagram.png" alt="images/Sami.jpg" width=750\>
 		
 		<h3>ToF Sensor Connected</h3>
@@ -41,9 +42,53 @@
 		<p>In terms of sensor speed, I took 2048 samples twice. The first sample set's time ranged from 527837 to 629599, with a range of 101762. The second's ranged from 885091 to 986846, with a range of 101755. These are pretty consistent with each other, so I will just average the value out, and use that to calculate the sensor rate. With a rate of 2048 samples in 101.7585 seconds, that comes out to about 20.126 samples per second, or about 49.687 milliseconds per sample.</p>
 		
 		<h3>Two ToF Sensors Connected</h3>
-		<p>Insert image. Insert screenshot of sensors working in parallel. Talk about it, probably.</p>
+		<p>The image shown in the prelab section shows both of the sensors properly connected to the Artemis. Below is a screenshot of the serial output showing measurements from both sensors.</p>
+		<img src="images/both distance sensors.png" alt="images/Sami.jpg" width=300\>
+		<p>Below is the code that I wrote to be able to get the two sensors properly working.</p>
+		<p style="font-family: Courier New">
+		// We first want to set XSHUTDOWN to low. This will disable the front sensor<br>
+		digitalWrite( XSHUTDOWN, LOW );<br>
+		// We first want to check if a sensor is set to 0x52. If it is, it means the back sensor is, as that is the only sensor that can respond<br>
+		if( distance_sensor_back.getI2CAddress() == 0x52 ) {<br>
+		&emsp;&emsp;// We then want to set the back sensor to 0x54 to differentiate it.<br>
+		&emsp;&emsp;distance_sensor_back.setI2CAddress( 0x54 );<br>
+		}<br>
+		// If it is not 0x52, then we already set it to 0x54.<br>
+		// We then want to check if it initialized well. It will return 0 if so.
+		if( distance_sensor_back.begin() != 0 ) {<br>
+		&emsp;&emsp;Serial.println( "Back distance sensor failed to begin. Please check wiring." );<br>
+		}<br>
+		// If it did<br>
+		else {<br>
+		&emsp;&emsp;// set the distance mode<br>
+		&emsp;&emsp;distance_sensor_back.setDistanceModeShort();<br>
+		&emsp;&emsp;// and display that it worked.<br>
+		&emsp;&emsp;Serial.print( "Back sensor online with distance mode " );<br>
+		&emsp;&emsp;Serial.print( distance_sensor_back.getDistanceMode() );<br>
+		&emsp;&emsp;Serial.print( " and at address 0x" );<br>
+		&emsp;&emsp;Serial.println( distance_sensor_back.getI2CAddress(), HEX );<br>
+		}<br>
+		// Then enable the XSHUTDOWN pin so that we might enable the front sensor<br>
+		digitalWrite( XSHUTDOWN, HIGH );<br>
+		// Begin returns 0 on a good initialization<br>
+		if( distance_sensor_front.begin() != 0 ) {<br>
+		&emsp;&emsp;Serial.println( "Sensor failed to begin. Please check wiring." );<br>
+		}<br>
+		else {<br>
+		&emsp;&emsp;// Set the distance mode<br>
+		&emsp;&emsp;distance_sensor_front.setDistanceModeShort();<br>
+		&emsp;&emsp;// and display that it worked.<br>
+		&emsp;&emsp;Serial.print( "Front sensor online with distance mode " );<br>
+		&emsp;&emsp;Serial.print( distance_sensor_front.getDistanceMode() );<br>
+		&emsp;&emsp;Serial.print( " and at address 0x" );<br>
+		&emsp;&emsp;Serial.println( distance_sensor_front.getI2CAddress(), HEX );<br>
+		}
+		</p>
+		<p>Using this, along with the data collection and sending code that will be outlined later in the lab (though that code has been since modified for to get the front and back sensors to send separately), I created a graph with the results of the two sensors.</p>
+		<img src="images/two sensor distance versus time.png" alt="images/Sami.jpg" width=750\>
 		
 		<h3>Sensor Speed</h3>
+		<img src="images/as fast as possible.png" alt="images/Sami.jpg" width=1000\>
 		<p>Limiting factor and how I check for this</p>
 		
 		<h3>Time vs. Distance</h3>
