@@ -12,7 +12,7 @@
 		
 		<h3>Prelab</h3>
 		<p>For the PWM, as of when I am writing this, I chose pins 2, 3, 14, and 15, as they are across from each other for the sake of symmetry. More importantly, though, they all have PWM capabilities. However, upon testing pin 2, it didn't seem to work, so I switched to pin 5. Below is a diagram showing this.</p>
-		<img src="images/motor connection diagram.png" alt="images/Sami.jpg" width=750\>
+		<img src="images/motor driver wiring diagram.jpg" alt="images/Sami.jpg" width=750\>
 		<p>We power the Artemis and the motors/drivers with different batteries because the motors can draw a lot of current, especially when getting the motors started, turning the Artemis off and resetting program flow. With different batteries, this will be avoided.</p>
 		<p>In terms of choosing wiring, it was pretty hard to do this without much in the way of knowing what was inside the robot and what I might need to do. With this, I decided for many of my wires to just go with longer varieties, knowing that I can cut them later on. I used stranded wire to reduce wire breakages later on. A lot more decisions were made during the destruction and reconstruction of my robot, and those will be discussed later.</p>
 		
@@ -184,7 +184,8 @@
 		<p>They all seem to have about a frequency of 183 Hz. I would argue that this is adequately fast for what we are trying to accomplish here, being that I was able to drive the car in a straight line doing so (and that we are instructed to use analogWrite in the first place).</p>
 		<p>In terms of potential benefits of manually driving a PWM signal to get faster speeds, it might lead to a smoother output. Though, for our purposes, this doesn't seem as though it would be much benefit.</p>
 		<h3>Minimized PWM</h3>
-		<p>In terms of the lowest PWM to overcome static friction, I got the value ... . I arrived at this number by starting the value at 0 and increasing it until it started. In terms of the lowest PWM to maintain movement, I got the value ... . I started at the PWM value to overcome static friction and decreased it until it stopped moving.</p>
+		<p>In terms of the lowest PWM to maintain movement after breaking static friction, I got the value ... . I started at the PWM value to overcome static friction and decreased it until it stopped moving.</p>
+		<p>^^^ Unfortunately it got super late and I ended up calling it a night before getting to this point. Though, realistically, it would have been a value fairly lower than the value for overcoming static friction. Rafi had gotten 25 when he did the lab, and I likely would have gotten a similar figure.</p>
 		
 		
 		<p><a href="lab3.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab5.html">Next lab.</a></p>
