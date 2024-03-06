@@ -112,13 +112,44 @@
 		</table>
 		<p>Examining the video above, I can actually see that one of the two bottom LEDs do not go off, so that is something I will look into fixing in the future. But this is definitely a good proof of concept.</p>
 		
+		<h3>Lower Limit PWM</h3>
+		<p>To better characterize the motors, it is important to know their lower limits. The right wheels' PWM seemed to be about 75. The left wheels' PWM seemed to be around 80. It was a bit finicky because it would sometimes go and get stuck for a second before building up the strength to continue a bit more. However, these values are just a springboard for what is to come. Using these values, in conjunction with the maximum 255 PWM value, I can create an adjusted value proportionally. We can map the real PWM values to going from 0 to 100, where 0 is off, and 100 is full power. This ends up looking like the following:</p>
+		<img src="images/desmos pwm mapping.png" alt="images/Sami.jpg" width=750\>
+		<p>I ended up making it piecewise with a value of 0 mapping to 0, as I argue it is better to just turn off the motors when it is set to 0 instead of letting them struggle with a barely-not-enough PWM signal.</p>
 		
-		
-		<p>Notes from soldering stuff. Solder out
-		
-		
-		The first oscilloscope image has two signals. The top blue one is the output from the B2/A2 output (green wire), while the bottom yellow is the PWM output from the Artemis. It is the input into input B2 and A2 (green wire). The white input to the motor driver is supposed to be 0. The output of the white is what Rafi seemed to call the "negative output voltage to the motor" which he claimed was supposed to be essentially 0. This can be seen in the second oscilloscope picture, where the blue signal remains what it was, and the yellow signal is just the probe connected to the yellow output wire (A1/B1). There are little spikies at every dip. Diode related?
+		<h3>Robot Calibration and Open Loop</h3>
+		<p>Starting with what I had derived earlier, I was able to incrementally work toward a mapping for the PWM values that functioned as I had hoped, meaning that they drove at approximately the same speed. I found the car kept veering to its left, meaning its right motors were sufficiently stronger than the left motors. I had adjusted the mapping originally to lower the slope by about 30%. This seemed to help. Then I lowered it by about 50% on top of the 30%. This didn't seem to make it much better. I then decreased it by 20% three times from the previous value. I realized that in decreasing the slope, there was diminishing returns. I brought the slope back to the 30% in combination with the 50%, as that was a realtively successful slope. It's likely then that what remained was a bad offset, so I brought it down by 10 PWM. This seemed to work a bit. I then brought it down to an offset of 62. This worked incredibly well, as shown in the video below.</p>
+		<video width="550" controls>
+			<source src="videos/open loop control.mp4">
+			The video is not working.
+		</video>
+		<p>The code I used to make this work is shown below. I used a Bluetooth command to set a timer and preset PWM signals based upon my found mappings. When the timer ran out, the wheels are turned off so as to prevent the robot from hurting itself.</p>
+		<p style="font-family: Courier New">
+		case CHANGE_PWM_VALUE:<br>
+		int int_c;<br><br>
+
+		// Extract the next value from the command string as an integer<br>
+		success = robot_cmd.get_next_value(int_c);<br>
+		if (!success)<br>
+		return;<br><br>
+			
+		temp_counter = int_c;<br><br>
+
+		// Right wheels<br>
+		// Forward driver<br>
+		analogWrite( 5, right_pwm_map(5) );<br>
+		// Reverse driver<br>
+		analogWrite( 3, right_pwm_map(0) );<br>
+		// Left wheels<br>
+		// Forward driver<br>
+		analogWrite( 15, left_pwm_map(5) );<br>
+		// Reverse driver<br>
+		analogWrite( 14, left_pwm_map(0) );<br><br>
+
+		break;<br>
 		</p>
+		
+		<p>It is incredibly poorly named as of now, because I started implementing a different command and just usurped the name for ease of implementation. All it does is, as previously mentioned, set the ascending timer and set the values for the PWM.</p>
 		
 		<h2>ECE 5160</h2>
 		<h3>Analog Write Frequency</h3>
