@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html "lang=en">
+	<head>
+		<title>Lab 5</title>
+		<link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+	</head>
+	<body>
+		<h1>Lab 5</h1>
+		<p><a href="lab4.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab6.html">Next lab.</a></p>
+		
+		<h2>ECE 4160</h2>
+		
+		<h3>Prelab</h3>
+		<p>Compiling takes quite a long time, and connecting and disconnecting the USB-C port to and from my robot isn't the easiest task. With this, and the suggestion from the lab handout website, I decided to quickly implement a way to do this with a command named CHANGE_PID_VALUE. A snippet of that is below.</p>
+		<p style="font-family: Courier New">
+		// Assign the value to the proper variable<br>
+		if( strcmp( parameter, "p") == 0 ) {<br>
+		&emsp;&emsp;// Set p to value<br>
+		&emsp;&emsp;pid_values.p = new_pid_value;<br>
+		&emsp;&emsp;Serial.print( "p set to " );<br>
+		&emsp;&emsp;Serial.println( new_pid_value );<br>
+		} else if( strcmp( parameter, "i" ) == 0 ) {<br>
+		&emsp;&emsp;// Set i to value<br>
+		&emsp;&emsp;pid_values.i = new_pid_value;<br>
+		&emsp;&emsp;Serial.print( "i set to " );<br>
+		&emsp;&emsp;Serial.println( new_pid_value );<br>
+		} else if( strcmp( parameter, "d" ) == 0 ) {<br>
+		&emsp;&emsp;// Set d to value<br>
+		&emsp;&emsp;pid_values.d = new_pid_value;<br>
+		&emsp;&emsp;Serial.print( "d set to " );<br>
+		&emsp;&emsp;Serial.println( new_pid_value );<br>
+		} else {<br>
+		&emsp;&emsp;Serial.print( "Received: " );<br>
+		&emsp;&emsp;Serial.print( parameter );<br>
+		&emsp;&emsp;Serial.println( ", but expected: p, i, or d. Failed at assignment.");<br>
+		}
+		</p>
+		<p>The Python command to set the values looks like the following.</p>
+		<p style="font-family: Courier New">
+		ble.send_command( CMD.CHANGE_PID_VALUE, "p|10.0" )<br>
+		ble.send_command( CMD.CHANGE_PID_VALUE, "i|1.0" )<br>
+		ble.send_command( CMD.CHANGE_PID_VALUE, "d|0.5" )<br>
+		</p>
+		
+		<p>I implemented a lot of commands like this, like maximum motor speed, PID duration, whether or not I want to autosend data after each PID (this is because it takes so long to send data sometimes, and I just can't test quickly enough if I have to wait every time. I figure, if there is good data, I will send it myself), change the setpoint, stop the motors and stop PID, start PID, and send PID data. At the time of writing this, I can't yet set a wheel deadband as a function of percentage from 0 to 100, but I might add that. Currently, it is preprogrammed at 5% (with each individual PWM's deadband still accounted for).</p>
+		
+		<p>Clearly describe how you handle sending and receiving data over Bluetooth
+Consider adding code snippets as necessary to showcase how you implemented this on Arduino and Python I NEED TO DESCRIBE ALL THIS..................</p>
+		
+		
+		<h3>PID Controller</h3>
+		<p>I saw somebody in lab point the car at their white box. I thought this was absolutely wonderful, because I thought it abhorrent the thought that my car crash full speed into a wall and I have to resolder the distaster that is my car's internals. The box acts as a buffer that can be pushed around, buying me time to grab my car or send a <span style="font-family: Courier New">STOP_MOTORS</span> command to the car.</p>
+		
+		<p>One slightly difficult thing encountered was that my car wasn't driving straight enough to always be pointing at the box, resulting in the car's sensor pointing past the box and the car ramming into the box. To solve this, in Phillips 238, I just found another cardboard box that was similarly large and put it next to my car box.</p>
+		
+		<p>Insert videos and texts and stuff regarding your PID controller. Code. How you integrated it. All that. A picture of the white box. And all these things.</p>
+		
+		<h3>Time of Flight sensor frequency</h3>
+		<p>The ToF sensor is set to its long range, so about 4m. It is checked every loop, meaning the limiting speed factor is the sensor itself, because the ToF sensor is a fairly slow sensor, on the order of 100ms per reading. However, I will find a more accurate and precise value for that. The other way I can know that my code runs faster is by looking at some of my data from testing my PID controller. I get multiple PID controller value updates per ToF sensor reading. The PID controller runs every loop, meaning that my loop runs faster than the ToF sensors read data.</p>
+		<p>Now that the limiting speed factor is determined, we can move onto actually testing the speed of the time of flight sensor. I took 88 samples of the ToF sensor. The first reading came in at the 52980 millisecond mark, and the last reading came in at the 61550 millisecond mark, meaning a time duration of 8570 milliseconds for the 88 samples. This means it takes about 97.386 milliseconds per sample, or a sample frequency of about 10.268 Hz.</p>
+		
+		<h3>PID Control Every Loop</h3>
+		<p>The lab asked me to make sure my PID controller ran each loop. However, as described in the previous section, my PID controller already runs every loop, independently of the ToF sensor. This is because I implemented the execution of the PID controller using a few booleans. The first is <span style="font-family: Courier New">start_pid</span>. What this does is set the <span style="font-family: Courier New">executing_pid flag</span> true, the <span style="font-family: Courier New">start_pid</span> flag false, grab the initial time, and reset the PID data arrays in the case that I chose not to send the data from the previous run. Then the <span style="font-family: Courier New">executing_pid</span> flag is checked every loop. If it is true, then the PID controller will update itself. So, in other words, while PID is running, the PID controller is updating the output to the motors. And then, within the PID controller that runs every loop, it checks the sensor output. What this means is that the ToF sensor is checked every loop cycle (the fastest possible), only when we are running PID because that is the only time we care about the ToF data at this point. This effectively means that they both run at their own fastest-possible paces, divorcing them while still tying them together in so far as it is useful.</p>
+		<p>In hindsight, I might have considered making some sort of more explicit state machine for this and the rest of my robot. This would clean up the code a lot, instead of just having these horrible boolean flags scattered throughout my code. Perhaps if I have the time at some point this semester, I will find it in myself to restructure my code. However, at this point in time, I think my current code suffices and honestly functions well.<p>
+		
+		<h3>PID Loop Speed</h3>
+		<p>To check the PID loop speed, I will do the same thing I did for the ToF sensor readings. I took a total of 1013 samples from the PID controller. The first data point is at 52984 milliseconds, while the last is at 61620 milliseconds. This gives a range of 8636 milliseconds. This means it takes about 8.525 milliseconds per sample, or about 117.300 Hz. This means the PID loop is running about 11.423x faster than the ToF sensor is gathering data. This means there will be about 10 duplicated samples for every new sample when the PID loop is running. And I'm sure I could speed up the PID loop. The Serial.print() and Serial.println() statements certainly do no service to the PID loop speed. Plus whatever other bloat is leftover in that loop. That's a lot of opportunity wasted for the PID controller to make more decisions.</p>
+		
+		<h3>Linear Extrapolation</h3>
+		<p>To get linear extrapolation working, I basically followed what was told me to do in the lab. I implemented it by creating a function, which takes three inputs, and returns the extrapolated distance. It is run every time the distance sensor does not return anything, in the form of an if-else statement, shown below.</p>
+		<p>The following are defined as global variables.</p>
+		<p style="font-family: Courier New">
+		// Variables for the estimated distance, whether or not we estimate from sensor or estimate from previous readings<br>
+		int estimated_distance;<br>
+		int previous_estimated_distance;
+		</p>
+		<p>The following is in the main loop of the code.</p>
+		<p style="font-family: Courier New">
+		// Check if the data from the sensor is ready to be collected
+		if( distance_sensor_front.checkForDataReady() ) {<br>
+		&emsp;&emsp;...<br>
+		&emsp;&emsp;// Get the result of the measurement from the sensor<br>
+		&emsp;&emsp;front_distance_array[front_distance_entries_gathered].distance = distance_sensor_front.getDistance();<br>
+		&emsp;&emsp;...<br>
+		&emsp;&emsp;// Set the estimated distance<br>
+		&emsp;&emsp;previous_estimated_distance = estimated_distance;<br>
+		&emsp;&emsp;estimated_distance = front_distance_array[front_distance_entries_gathered].distance;<br>
+		&emsp;&emsp;...<br>
+		}<br>
+		// If the data from the sensor is not ready to be collected<br>
+		else {<br>
+		&emsp;&emsp;// Then we want to extrapolate the data. But we first need to see if there are enough entries. We need two.<br>
+		&emsp;&emsp;if( front_distance_entries_gathered > 1 ) {<br>
+		&emsp;&emsp;&emsp;&emsp;previous_estimated_distance = estimated_distance;<br>
+		&emsp;&emsp;&emsp;&emsp;estimated_distance = extrapolate_distance_reading( front_distance_array[front_distance_entries_gathered - 2], front_distance_array[front_distance_entries_gathered - 1], (int) millis() );<br>
+		&emsp;&emsp;}<br>
+		}
+		</p>
+		<p>The previous estimated distance is used in the calculation of the differential component of u(t). The proportional and integral terms only need the current estimated distance. The extrapolation function is defined as follows.</p>
+		<p style="font-family: Courier New">
+		int extrapolate_distance_reading( distance_reading_t ere_previous_reading, distance_reading_t previous_reading, int current_time ) {<br>
+		&emsp;&emsp;// Calculate the slope given the previous samples<br>
+		&emsp;&emsp;float distance_slope = ( (float) previous_reading.distance - (float) ere_previous_reading.distance ) / ( (float) previous_reading.time - (float) ere_previous_reading.time );<br>
+		&emsp;&emsp;// Calculate the likely distance traveled since previous reading<br>
+		&emsp;&emsp;return ( current_time - previous_reading.time ) * distance_slope;<br>
+		}
+		</p>
+		
+		<h2>ECE 5160</h2>
+		<h3>Wind up protection for my integrator</h3>
+		
+		
+		<p>For a software reset</p>
+		<p>https://arduino.stackexchange.com/questions/1477/reset-an-arduino-uno-in-code</p>
+		<p>https://cdn.sparkfun.com/assets/c/8/3/d/2/Apollo3-Blue-SoC-Datasheet.pdf?_gl=1*15ztg6w*_ga*NTg2MzQ3NTg4LjE3MDYxMjM4MTE.*_ga_T369JS7J9N*MTcwOTY5NDQzOS4xOS4xLjE3MDk2OTYwNjcuNDQuMC4w</p>
+		<p>https://electronics.stackexchange.com/questions/661349/what-are-w1c-and-r1c-register-access-types</p>
+		<p>https://dannas.name/2023/04/27/write-one-to-clear</p>
+		<p>
+		
+	</body>
+</html>
