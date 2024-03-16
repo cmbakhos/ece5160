@@ -129,9 +129,53 @@
 		<h3>PID Controller</h3>
 		<p>I saw somebody in lab point the car at their white box. I thought this was absolutely wonderful, because I thought it abhorrent the thought that my car crash full speed into a wall and I have to resolder the distaster that is my car's internals. The box acts as a buffer that can be pushed around, buying me time to grab my car or send a <span style="font-family: Courier New">STOP_MOTORS</span> command to the car.</p>
 		
-		<p>One slightly difficult thing encountered was that my car wasn't driving straight enough to always be pointing at the box, resulting in the car's sensor pointing past the box and the car ramming into the box. To solve this, in Phillips 238, I just found another cardboard box that was similarly large and put it next to my car box.</p>
+		<p>One slightly difficult thing encountered was that my car wasn't driving straight enough to always be pointing at the box, resulting in the car's sensor pointing past the box and the car ramming into the box. To solve this, in Phillips 238, I just found another cardboard box that was similarly light and put it next to my car box. I didn't have this luxury at home, so I just stuck with the white box.</p>
 		
-		<p>Insert videos and texts and stuff regarding your PID controller. Code. How you integrated it. All that. A picture of the white box. And all these things.</p>
+		<p>The following, though still a lot of code, is a very slimmed down version of what I implemented. Essentially adding together the different terms to be able to make a value to send to the motors, however, with all the calculations involved in creating the different terms, and saving all the different information for later reference, as well as the logic for making decisions regarding these things.</p>
+		<p style="font-family: Courier New">
+		// If the executing_pid boolean is true, this means we want to attempt to execute pid<br>
+		if( executing_pid ) {<br>
+		&emsp;&emsp;// We want to stop under the condition that the time range is completed or if the data array is full<br>
+		&emsp;&emsp;if( ((int) millis() - pid_start_time > pid_duration) || (front_distance_entries_gathered >= DISTANCE_ARRAY_SIZE) || (pid_entries_gathered >= PID_ARRAY_SIZE) ) {<br>
+		&emsp;&emsp;&emsp;&emsp;... // Things to stop: stopping motors and setting variables<br>
+		&emsp;&emsp;}<br><br>
+		&emsp;&emsp;// But if neither of those things are true, then we want to continue to gather data and run the PID controller<br>
+		&emsp;&emsp;else {<br>
+		&emsp;&emsp;&emsp;&emsp;...<br>
+		&emsp;&emsp;&emsp;&emsp;// We first have to check to make sure that we aren't trying to check distance data that doesn't yet exist.
+		&emsp;&emsp;&emsp;&emsp;// The robot won't start driving until the front distance sensor gathers at least one data point<br>
+		&emsp;&emsp;&emsp;&emsp;if( front_distance_entries_gathered > 0 ) {<br>
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;int distance_to_set_point = estimated_distance - pid_set_point;
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;float pid_time_difference_scaled = ( pid_current_reading_time - pid_previous_reading_time ) * 0.001;<br>
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;pid_integration_accumulator += distance_to_set_point * pid_time_difference_scaled;<br>
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;float distance_derivative = 0;<br><br>
+
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;// Only if we now have two data entries are we able to accurately estimate the derivative term<br>
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;if( front_distance_entries_gathered > 1 ) {<br>
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;pid_array[pid_entries_gathered].distance_difference = estimated_distance - previous_estimated_distance;<br>
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;distance_derivative = pid_array[pid_entries_gathered].distance_difference;<br>
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;distance_derivative /= pid_time_difference_scaled;<br>
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;}<br>
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;else {<br>
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;pid_array[pid_entries_gathered].distance_difference = 0;<br>
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;}<br><br>
+				  
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;float pid_u = pid_values.p * distance_to_set_point + pid_values.i * pid_integration_accumulator + pid_values.d * distance_derivative;<br><br>
+				
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;... // This just saved the data into the arrays<br><br>
+
+		&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;drive_straight( pid_u, 0, max_motor_speed );<br>
+		&emsp;&emsp;&emsp;&emsp;}<br>
+		&emsp;&emsp;}<br>
+		}
+		</p>
+		
+		<p>All of this can be seen in action in the video below, where it stops at around 290~300 millimeters when trying to maintain 304 millimeters.</p>
+		
+		<video width="600" controls>
+			<source src="videos/PID.mp4">
+			The video is not working.
+		</video>
 		
 		<h3>Time of Flight sensor frequency</h3>
 		<p>The ToF sensor is set to its long range, so about 4m. It is checked every loop, meaning the limiting speed factor is the sensor itself, because the ToF sensor is a fairly slow sensor, on the order of 100ms per reading. However, I will find a more accurate and precise value for that. The other way I can know that my code runs faster is by looking at some of my data from testing my PID controller. I get multiple PID controller value updates per ToF sensor reading. The PID controller runs every loop, meaning that my loop runs faster than the ToF sensors read data.</p>
@@ -186,18 +230,40 @@
 		
 		<h2>ECE 5160</h2>
 		<h3>Wind up protection for my integrator</h3>
+		<p>To implement wind-up protection for my integrator, I took the pid_u value, and clamped it at max motor speed. This means that we cannot output to the motors faster than they will go. Max motor speed is theoretically 100, but I have allowed it to be set lower, as I previously mentioned, for the sake of safer testing. If we find we exceed this number, and the car is travelling beyond the setpoint, then we should clamp the integrator to stop growing. If we exceed this number but are going in the correct direction, we won't clamp it. This is shown in the code below.</p>
+		<p style="font-family: Courier New">
+		// Check if the signs for the setpoint distance and the original u value are the same<br>
+		if( (distance_to_set_point &lt;= 0 && pid_u &lt;= 0) || (distance_to_set_point &gt;= 0 && pid_u &gt;= 0) ) {<br>
+		&emsp;&emsp;pid_signs_equal = true;<br>
+		}<br><br>
+
+		// Clamp the pid_u value for integral clamping<br>
+		if( pid_u &gt; max_motor_speed ) {<br>
+		&emsp;&emsp;pid_clamped = true;<br>
+		&emsp;&emsp;pid_u = max_motor_speed;<br>
+		}<br>
+		else if( pid_u &lt; -max_motor_speed ) {<br>
+		&emsp;&emsp;pid_clamped = true;<br>
+		&emsp;&emsp;pid_u = -max_motor_speed;<br>
+		}<br><br>
+
+		// If the integrator term is overpowered and the signs are different (car moving further away from setpoint)<br>
+		if( !pid_signs_equal && pid_clamped ) {<br>
+		&emsp;&emsp;// Then we should clamp<br>
+		&emsp;&emsp;zero_next_pid_integrator = true;<br>
+		}
+		</p>
 		
 		
-		
-		<p>Features I would ideally have</p>
+		<h2>Features I would ideally have</h2>
+		<p>I found I kept writing about things I would have done and would have liked to do, and I honestly think it was kind of distracting at most moments and veered off on a tangent. But I figured since this website is for documentation, and I'm sure y'all would like to hear about these kinds of things, I would just throw this on here. Hopefully I can find it in me to implement even a few of these things in time.</p>
 		<p> At the time of writing this, I can't yet set a wheel deadband as a function of percentage from 0 to 100, but I might add that. Currently, it is preprogrammed at 5% (with each individual PWM's deadband still accounted for).</p>
-		<p>Also, honestly, having all of these settings to configure different things makes me feel really cool lol. It also makes it more convenient for me. As I chose to have the cover for my robot (plus the LEDs on the top that are soldered to the Artemis, making it inseparable, even), it is admittedly very difficult to keep plugging and unplugging it, so having as much customizable via Bluetooth as I can has made it much easier. I honestly wish I could program it via Bluetooth, but I know that is way outside of the scope of this class.</p>
-		<p>For a software reset</p>
+		<p>Also, honestly, having all of these settings to configure different things makes it more convenient for me. As I chose to have the cover for my robot (plus the LEDs on the top that are soldered to the Artemis, making it inseparable, even), it is admittedly very difficult to keep plugging and unplugging it, so having as much customizable via Bluetooth as I can has made it much easier. I honestly wish I could program it via Bluetooth, but I know that is way outside of the scope of this class.</p>
+		<p>Maybe a generic change variable function to be able to really customize things would be nice.</p>
+		<p>For a software reset. I would like to be able to reset the Arduino with a command. It turns out that isn't so straightforward.</p>
 		<p>https://arduino.stackexchange.com/questions/1477/reset-an-arduino-uno-in-code</p>
 		<p>https://cdn.sparkfun.com/assets/c/8/3/d/2/Apollo3-Blue-SoC-Datasheet.pdf?_gl=1*15ztg6w*_ga*NTg2MzQ3NTg4LjE3MDYxMjM4MTE.*_ga_T369JS7J9N*MTcwOTY5NDQzOS4xOS4xLjE3MDk2OTYwNjcuNDQuMC4w</p>
 		<p>https://electronics.stackexchange.com/questions/661349/what-are-w1c-and-r1c-register-access-types</p>
 		<p>https://dannas.name/2023/04/27/write-one-to-clear</p>
-		<p>
-		
 	</body>
 </html>
