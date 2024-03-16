@@ -11,7 +11,8 @@
 		<h2>ECE 4160</h2>
 		
 		<h3>Prelab</h3>
-		<p>Compiling takes quite a long time, and connecting and disconnecting the USB-C port to and from my robot isn't the easiest task. With this, and the suggestion from the lab handout website, I decided to quickly implement a way to do this with a command named CHANGE_PID_VALUE. A snippet of that is below.</p>
+		<p>Just a forewarning, there are a LOT of code snippets. I hope that doesn't turn out to be a problem.</p>
+		<p>Compiling takes quite a long time, and connecting and disconnecting the USB-C port to and from my robot isn't the easiest task. With this, and the suggestion from the lab handout website, I decided to quickly implement a way to do this with a command named <span style="font-family: Courier New">CHANGE_PID_VALUE</span>. A snippet of that is below.</p>
 		<p style="font-family: Courier New">
 		// Assign the value to the proper variable<br>
 		if( strcmp( parameter, "p") == 0 ) {<br>
@@ -42,11 +43,88 @@
 		ble.send_command( CMD.CHANGE_PID_VALUE, "d|0.5" )<br>
 		</p>
 		
-		<p>I implemented a lot of commands like this, like maximum motor speed, PID duration, whether or not I want to autosend data after each PID (this is because it takes so long to send data sometimes, and I just can't test quickly enough if I have to wait every time. I figure, if there is good data, I will send it myself), change the setpoint, stop the motors and stop PID, start PID, and send PID data. At the time of writing this, I can't yet set a wheel deadband as a function of percentage from 0 to 100, but I might add that. Currently, it is preprogrammed at 5% (with each individual PWM's deadband still accounted for).</p>
+		<p>Later on, I implemented a lot of commands like this, like maximum motor speed, PID duration, whether or not I want to autosend data after each PID (this is because it takes so long to send data sometimes, and I just can't test quickly enough if I have to wait every time. I figure, if there is good data, I will send it myself), change the setpoint, stop the motors and stop PID, start PID, and send PID data.</p>
+
+		<p>To send and receive data over Bluetooth, I basically took exactly what I did in previous labs and adapted it to the PID controller data. This ended up looking like the following. This is run every loop, but is almost always skipped, because the send_pid_data flag is almost never on, only once per run. So, I first check if the <span style="font-family: Courier New">send_pid_data</span> flag is on. If it is, then we first start by looping through the distance array, sending back all of the gathered entries. The distance array just holds only the distance readings and the timestamp attached to each one. This could likely be wrapped into the PID array, but they are written to at different frequencies, and it is not very much a problem I have to think about right now. I have ample space, and it is written to much less frequently than the PID array, plus each entry is smaller, so it is unlikely to be an issue in the immediate future.</p>
+		<p>I then loop through, sending the various things relating to the PID data, so the current distance to the setpoint, the u(t) value being sent to the motors, the time difference between the two previous readings (from the sensors or extrapolated), the distance difference between the previous to readings (from the sensors or extrapolated), the absolute time in milliseconds, and the time elapsed from the start of the PID session.</p>
+		<p>Then, we set the <span style="font-family: Courier New">send_pid_data</span> flag to false so we don't enter back into this if block and thusly into a data-sending loop each time we loop. Lastly, we set the array indicies for both the distance and PID arrays to 0, so that we effectively will overwrite the data next time we collect, and effectively we now have deleted the data for us to store more.</p>
+		<p style="font-family: Courier New">
+		// If we want to send back PID data<br>
+		if( send_pid_data ) {<br>
+		&emsp;&emsp;// Send back the distance<br>
+		&emsp;&emsp;for( int i = 0; i &lt; front_distance_entries_gathered; i++ ) {<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.clear();<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( "Front Distance: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( front_distance_array[i].distance );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( " Time: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( front_distance_array[i].time );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_characteristic_string.writeValue( tx_estring_value.c_str() );<br><br>
+
+		&emsp;&emsp;&emsp;&emsp;Serial.println( tx_estring_value.c_str() );<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;for( int i = 0; i &lt; pid_entries_gathered; i++ ) {<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.clear();<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( "setpoint_distance: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( pid_array[i].setpoint_distance );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( " pid_u: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( pid_array[i].pid_u );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( " time_difference: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( pid_array[i].time_difference );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( " distance_difference: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( pid_array[i].distance_difference );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( " time: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( pid_array[i].time );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( " pid_time: " );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_estring_value.append( pid_array[i].pid_time );<br>
+		&emsp;&emsp;&emsp;&emsp;tx_characteristic_string.writeValue( tx_estring_value.c_str() );<br><br>
+
+		&emsp;&emsp;&emsp;&emsp;Serial.println( tx_estring_value.c_str() );<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;// We don't want to get stuck in a horrible Bluetooth loop<br>
+		&emsp;&emsp;send_pid_data = false;<br>
+		&emsp;&emsp;// When we are done sending the data, we need to essentially wipe the array clean by just resetting the index, or the front_distance_entries_gathered = 0<br>
+		&emsp;&emsp;front_distance_entries_gathered = 0;<br>
+		&emsp;&emsp;pid_entries_gathered = 0;<br>
+		}
+		</p>
+		<p>Additionally, as I had previously mentioned, I implemented a setting via a command to allow me to choose to autosend data or not. This looks like the following.</p>
+		<p style="font-family: Courier New">
+		/*<br>
+		* SET_PID_AUTOSEND<br>
+		*/<br>
+		case SET_PID_AUTOSEND:<br>
+		&emsp;&emsp;// Parse to find the value to be set<br>
+		&emsp;&emsp;int new_pid_autosend_value;<br>
+		&emsp;&emsp;success = robot_cmd.get_next_value( new_pid_autosend_value );<br>
+		&emsp;&emsp;if( !success ) {<br>
+		&emsp;&emsp;&emsp;&emsp;Serial.println( "Expected an int. Failed at parsing." );<br>
+		&emsp;&emsp;&emsp;&emsp;return;<br>
+		&emsp;&emsp;}<br><br>
+
+		&emsp;&emsp;...<br><br>
+
+		&emsp;&emsp;// Assign the new autosend value<br>
+		&emsp;&emsp;if( new_pid_autosend_value == 0 ) {<br>
+		&emsp;&emsp;&emsp;&emsp;autosend_pid = false;<br>
+		&emsp;&emsp;} else {<br>
+		&emsp;&emsp;&emsp;&emsp;autosend_pid = true;<br>
+		&emsp;&emsp;}<br><br>
 		
-		<p>Clearly describe how you handle sending and receiving data over Bluetooth
-Consider adding code snippets as necessary to showcase how you implemented this on Arduino and Python I NEED TO DESCRIBE ALL THIS..................</p>
+		&emsp;&emsp;...<br><br>
 		
+		&emsp;&emsp;break;
+		</p>
+		<p>It is by default on, but I will almost always send the command to turn it off and just explicitly send command to send the data to myself. The command to explicitly send the data is pretty straighforward and looks like the following.</p>
+		<p style="font-family: Courier New">
+		/*<br>
+		* SEND_PID_DATA<br>
+		*/<br>
+		case SEND_PID_DATA:<br>
+		&emsp;&emsp;// Simply set the boolean to allow data to be sent<br>
+		&emsp;&emsp;send_pid_data = true;<br><br>
+
+		&emsp;&emsp;break;
+		</p>
 		
 		<h3>PID Controller</h3>
 		<p>I saw somebody in lab point the car at their white box. I thought this was absolutely wonderful, because I thought it abhorrent the thought that my car crash full speed into a wall and I have to resolder the distaster that is my car's internals. The box acts as a buffer that can be pushed around, buying me time to grab my car or send a <span style="font-family: Courier New">STOP_MOTORS</span> command to the car.</p>
@@ -110,6 +188,10 @@ Consider adding code snippets as necessary to showcase how you implemented this 
 		<h3>Wind up protection for my integrator</h3>
 		
 		
+		
+		<p>Features I would ideally have</p>
+		<p> At the time of writing this, I can't yet set a wheel deadband as a function of percentage from 0 to 100, but I might add that. Currently, it is preprogrammed at 5% (with each individual PWM's deadband still accounted for).</p>
+		<p>Also, honestly, having all of these settings to configure different things makes me feel really cool lol. It also makes it more convenient for me. As I chose to have the cover for my robot (plus the LEDs on the top that are soldered to the Artemis, making it inseparable, even), it is admittedly very difficult to keep plugging and unplugging it, so having as much customizable via Bluetooth as I can has made it much easier. I honestly wish I could program it via Bluetooth, but I know that is way outside of the scope of this class.</p>
 		<p>For a software reset</p>
 		<p>https://arduino.stackexchange.com/questions/1477/reset-an-arduino-uno-in-code</p>
 		<p>https://cdn.sparkfun.com/assets/c/8/3/d/2/Apollo3-Blue-SoC-Datasheet.pdf?_gl=1*15ztg6w*_ga*NTg2MzQ3NTg4LjE3MDYxMjM4MTE.*_ga_T369JS7J9N*MTcwOTY5NDQzOS4xOS4xLjE3MDk2OTYwNjcuNDQuMC4w</p>
