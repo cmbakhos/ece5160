@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html "lang=en">
+	<head>
+		<title>Lab 6</title>
+		<link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+	</head>
+	<body>
+		<h1>Lab 6</h1>
+		<p><a href="lab4.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab6.html">Next lab.</a></p>
+		
+		<h2>ECE 4160</h2>
+		<h3>Prelab</h3>
+		<p>I won't be discussing how I handle data via Bluetooth, as I have already extensively covered it. Take a look at <a href="lab5.html">lab 5</a> for a really in-depth look into how I do this! The only reasonable difference that can be expressed is that instead of distance in the data sent, I put an angle.</p>
+		<h3>Calibrating the gyroscope</h3>
+		<p>This was honestly really hard. I am convinced I have an especially horrible IMU. It would constantly drift while it sat still, in what appeared to be a linear fashion. Not seeming to approach any bias value at all.</p>
+		<p>I previously had tried to get sampling at startup to work. Trying to adjust by any value I could get in those few seconds just seemed to make it worse. I initially just tried sampling a certain number of times, and then adjusting the drift, but that failed. So then I tried to sample a number of times, then use that error to sample again and calculate another error, and so on a few times. This seemed like a really good idea, but for some reason, I could not get it to work. Then I moved on to trying just a precomputed value.</p>
+		<p>I added a bias to each sample from the IMU (pre-integrating, to calculate the seemingly linear drift). This actually helped stablize them a lot. These factors were based on collecting data for 30 seconds and averaging the drift out, sort of like my previous method but, well, precomputed.</p>
+		<img src="images/drift values.png" alt="images/Sami.jpg" width=400\>
+		<p>Eventually, though, I realized it might help to use data from the magnetometer, so I went back to the lecture 4 code and repurposed that to try to get this to work. It seemed to be similarly stable to my previous method, and it honestly seems much more robust, if that linear drift error value happens to change in the future, so I have decided to stick with it.</p>
+		
+		<h2>ECE 5160</h2>
+		<h3>Wind-up protection for my integrator</h3>
+		<p>Since I am restructuring my PID controller from the previous lab for this lab, as almost all of the infrastructure is there, I have already implemented wind-up protection for my integrator.</p>
+		<p>However, this is necessary because on less friction surfaces, the car is more likely to slide, allowing the integrator time to wind up beyond a point it possibly shouldn't.</p>
+		
+		<h2>Ideas</h2>
+		<p>I just wanted to say that I made a page for ideas that lie outside of the tasks of this class, but might make my life easier; my robot, website, or code better or cooler; or something like that. I added a few ideas from last time, including an icon for the website, more efficient use for robot setup time, having the car top actually close, using function pointers, and restructuring my whole code base to structure my robot as an FSM. You can find the list <a href="ideas.html">here</a>.
+		<p><a href="lab4.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab6.html">Next lab.</a></p>
+	</body>
+</html>
