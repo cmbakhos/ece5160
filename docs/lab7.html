@@ -41,7 +41,14 @@
 		<p>The maximum velocity is about 2500 millimeters/second, from my second graph. My frist graph reached only around 2200 millimeters/second, but I can know not to use that because if it was faster in the second graph, it can at least reach that speed, meaning the first graph doesn't quite give the maximum. I will use this 2500 millimeters/second to estimate drag. We are told to use unity for steady-state input for now. Let's say force has units of kilogram*millimeters/second^2. Drag then has units of kilogram/second. With all of this, drag comes out to be 1/2500 kilograms/second, or about 0.0004 kilograms/second.</p>
 		
 		<h3>Estimating mass</h3>
-		<p>To estimate the mass, </p>
+		<p>To estimate the mass, we first need to know how long it takes to get to 90% or so of terminal velocity from 0. 90% of terminal velocity is 2250 millimeters/second. To get to this velocity, estimated from the first graph, is about 1 second. Using the formula mass = ( -drag * time to 90% terminal velocity ) / ln( 1 - drag * 90% terminal velocity ), we get the mass is about 0.000173 kilograms. This is quite small, and will be scaled up once we start taking the fact that weused unity for the input into account. With this value for mass, we now have out A and B matricies. We also already had our C matrix. The following lines of code show how I derive those matricies in Python.</p>
+		
+		<p style="font-family: Courier New">
+		
+		</p>
+		
+		<h3>Estimating Sigma_u</h3>
+		<p>We almost have everything we need. We just need t
 		
 		<h2>ECE 5160</h2>
 		<h3>Wind-up protection for my integrator</h3>
