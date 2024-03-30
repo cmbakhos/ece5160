@@ -44,11 +44,23 @@
 		<p>To estimate the mass, we first need to know how long it takes to get to 90% or so of terminal velocity from 0. 90% of terminal velocity is 2250 millimeters/second. To get to this velocity, estimated from the first graph, is about 1 second. Using the formula mass = ( -drag * time to 90% terminal velocity ) / ln( 1 - drag * 90% terminal velocity ), we get the mass is about 0.000173 kilograms. This is quite small, and will be scaled up once we start taking the fact that weused unity for the input into account. With this value for mass, we now have out A and B matricies. We also already had our C matrix. The following lines of code show how I derive those matricies in Python.</p>
 		
 		<p style="font-family: Courier New">
-		
+		A = np.array([<br>
+		&emsp;&emsp;[0,1],<br>
+		&emsp;&emsp;[0,-d/m]<br>
+		&emsp;&emsp;])<br><br>
+
+		B = np.array([<br>
+		&emsp;&emsp;[0],<br>
+		&emsp;&emsp;[-1/m]<br>
+		&emsp;&emsp;])<br><br>
+
+		C = np.array(<br>
+		&emsp;&emsp;[-1, 0]<br>
+		&emsp;&emsp;)
 		</p>
 		
 		<h3>Estimating Sigma_u</h3>
-		<p>We almost have everything we need. We just need t
+		<p>We almost have everything we need. We just need to ad
 		
 		<h2>ECE 5160</h2>
 		<h3>Wind-up protection for my integrator</h3>
