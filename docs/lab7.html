@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html "lang=en">
+	<head>
+		<title>Lab 7</title>
+		<link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+	</head>
+	<body>
+		<h1>Lab 7</h1>
+		<p><a href="lab6.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab8.html">Next lab.</a></p>
+		
+		<h2>ECE 4160</h2>
+		<h3>Estimating Sigma_z</h3>
+		<p>Sigma_z is just the variance of the sensor reading. The sensor I am using is the front distance sensor. We can see that the front distance sensor's variance is a function of the distance. Calling back to <a href="lab3.html">lab 3</a>, we can see the spread of the readings as the distance increases. This was captured in the short distance mode, however, and now I am operating in the long distance mode, which indeed will probably change somethings.</p>
+		<img src="images/distance versus distance.png" alt="images/Sami.jpg" width=750\>
+		<p>However, the Kalman filter is adjusted to work at terminal velocity, and really comes into play when the robot is close to the wall. Therefore, I only really care about this when the distance sensor is getting readings that are close to the wall, and therefore the variance is likely fairly low and likely does not change much as it gets closer and closer.</p>
+		<p>Based on this assumption, I placed the car around 300 millimeters away from my box and let the distance sensor absolutely go ham. It took 1024 samples, and with this, I calculated a variance of 1.2724571228027344. This will be used as my Sigma_z value.</p>
+		
+		<h3>Estimating the drag</h3>
+		<p>To estimate the drag, we need to get the robot up to full speed. It's hard to get to this point without risking many hours to fix a broken robot, so I tried to approach this a bit more cautiously. I used my box and my backpack as cushion, and I tried to get it to get to a point where it would mostly stay stright (my previous open-loop adjustments were for a speed of about 15%, not 75%), which took readjusting my pwm mappings. I also wanted to find a relatively good distance to space it. Too close it would never touch terminal velocity. Too far and it would veer off the straight path and I would lose control. But I also need it to be far enough to not only reach terminal, but maintain terminal velocity for a measurement or two so I could be fairly confident what terminal velocity actually is. However, data is gathered slow, so data resolution is pretty low. Which, funnily enough, is exactly what the Kalman filter is supposed to solve. The following is my first semi-successful attempt at gathering data.</p>
+		<img src="images/estimated velocity versus time first attempt.png" alt="images/Sami.jpg" width=750\>
+		<p>Also, important to note is my code used to calculate this velocity.</p>
+		<p style="font-family: Courier New">
+		# Calculate speed<br>
+		velocity = []<br>
+		print( [x[0] for x in front_distance] )<br>
+		print( [t[1] for t in front_distance] )<br>
+		for i in range( 1, len( front_distance ) ):<br>
+		&emsp;&emsp;distance0, time0 = front_distance[i - 1]<br>
+		&emsp;&emsp;distance1, time1 = front_distance[i]<br>
+		&emsp;&emsp;# Negate velocity to be able to show it as a positive moving forward, instead of a negative closing of a gap<br>
+		&emsp;&emsp;velocity.append( ( 1000*( distance0 - distance1 ) / ( time1 - time0 ), ( time1 + time0 ) / (2*1000) ) )
+		</p>
+		
+		<p>With the previous open-loop control, the right set of motors needed to be much stronger than the left. However, now my car is constantly veering left, so I definitely need to readjust and make the left relatively similar to the right.</p>
+		
+		<p>The next successful attempt is shown below. It seemed to stop at the 1.5 second mark, which is what I set the cutoff of my PWM session. It also crashed into my backpack as it reached this point, but did not detect the closing of the distance because the sensor did not go off in time, so I do need to add a bit more in the way of distance so it can better reach terminal velocity.</p>
+		<img src="images/estimated velocity versus time second attempt.png" alt="images/Sami.jpg" width=750\>
+		
+		<p>Despite spending a lot of time trying to get this to work, I wasn't able to get a better sample, so I will just use the previous two, which are, though not perfect, honestly pretty fine.</p>
+		
+		<h2>ECE 5160</h2>
+		<h3>Wind-up protection for my integrator</h3>
+		<p>Since I am restructuring my PID controller from the previous lab for this lab, as almost all of the infrastructure is there, I have already implemented wind-up protection for my integrator.</p>
+		<p>However, this is necessary because on less friction surfaces, the car is more likely to slide, allowing the integrator time to wind up beyond a point it possibly shouldn't.</p>
+		
+		<h2>Ideas</h2>
+		<p>My front distance sensor at one point failed to connect. Killing the power (unplugging the battery and the USB-C connection) and turning it back on seemed to revitalize it. I'm not quite sure what caused such a thing, because usually restarting the Artemis seemed to not affect the distance sensors. My car, for some reason, moved backwards and then the sensor seems to have stopped working. Regluing the LED cover. You can find the list <a href="ideas.html">here</a>.
+		<p><a href="lab6.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab8.html">Next lab.</a></p>
+	</body>
+</html>
