@@ -14,6 +14,11 @@
 		<img src="images/distance versus distance.png" alt="images/Sami.jpg" width=750\>
 		<p>However, the Kalman filter is adjusted to work at terminal velocity, and really comes into play when the robot is close to the wall. Therefore, I only really care about this when the distance sensor is getting readings that are close to the wall, and therefore the variance is likely fairly low and likely does not change much as it gets closer and closer.</p>
 		<p>Based on this assumption, I placed the car around 300 millimeters away from my box and let the distance sensor absolutely go ham. It took 1024 samples, and with this, I calculated a variance of 1.2724571228027344. This will be used as my Sigma_z value.</p>
+		<p style="font-family: Courier New">
+		Sigma_z = np.array([<br>
+		&emsp;&emsp;[1.2724571228027344]<br>
+		&emsp;&emsp;])<br><br>
+		</p>
 		
 		<h3>Estimating the drag</h3>
 		<p>To estimate the drag, we need to get the robot up to full speed. It's hard to get to this point without risking many hours to fix a broken robot, so I tried to approach this a bit more cautiously. I used my box and my backpack as cushion, and I tried to get it to get to a point where it would mostly stay stright (my previous open-loop adjustments were for a speed of about 15%, not 75%), which took readjusting my pwm mappings. I also wanted to find a relatively good distance to space it. Too close it would never touch terminal velocity. Too far and it would veer off the straight path and I would lose control. But I also need it to be far enough to not only reach terminal, but maintain terminal velocity for a measurement or two so I could be fairly confident what terminal velocity actually is. However, data is gathered slow, so data resolution is pretty low. Which, funnily enough, is exactly what the Kalman filter is supposed to solve. The following is my first semi-successful attempt at gathering data.</p>
@@ -55,12 +60,30 @@
 		&emsp;&emsp;])<br><br>
 
 		C = np.array(<br>
-		&emsp;&emsp;[-1, 0]<br>
+		&emsp;&emsp;[[-1, 0]]<br>
 		&emsp;&emsp;)
 		</p>
 		
+		<p>This webpage was written in a mixture of during and after I implemented the Kalman filter, so it is liable to be a bit of a mess. But I want to take a nice little hindsight moment here to talk about a bug I faced. I was calling a matrix inverse, as given in the Kalman filter function provided. However, it was complaining about it being a zero-dimensional matrix instead of a two-by-two matrix. Rafi got it to be a one-dimensional matrix, or something of the sort. Ignacio then helped me see that I actually had a two-element array for C instead of a one-by-two matrix. And similar things occurred with some of my one-by-one matricies, which were just defined as single-element arrays. By not including an additional, necessary set of square brackets around my <span style="font-family: Courier New">[-1,0]</span> in my C definition, it was just an array and not a matrix.</p>
+		
 		<h3>Estimating Sigma_u</h3>
-		<p>We almost have everything we need. We just need to estimate what Sigma_u is. This is quite difficult, </p>
+		<p>We almost have everything we need. We just need to estimate what Sigma_u is. This is quite difficult, so I just chose a small and seemingly reasonable value of 10. I plan on adjusting it if it seems to be leading to unreasonable results (which, I did not need to adjust).</p>
+		<p style="font-family: Courier New">
+		Sigma_u = np.array([<br>
+		&emsp;&emsp;[10,0],<br>
+		&emsp;&emsp;[0,10]<br>
+		&emsp;&emsp;])<br><br>
+		</p>
+		
+		<h3>Implementing the Kalman filter</h3>
+		<p>To implement the Kalman filter, I need to discretize the A and B matricies. I was honestly confused as to how to do this, until I looked closely at the slides and it soon instantly became clear what needed to be done. They outline a step-by-step derivation for the discretization, though we technically only need the last step of that derivation. This is the incredibly simple implementation in my Python code.</p>
+		<p style="font-family: Courier New">
+		# Discretize the A and B matricies
+		Ad = np.eye(2) + dt*A
+		Bd = dt*B
+		</p>
+		
+		<p>I also need the initial state estimation. This took me a bit longer to figure out than I'd like to admit, but </p>
 		
 		<h2>ECE 5160</h2>
 		<h3>Running Kalman filter faster than ToF readings</h3>
