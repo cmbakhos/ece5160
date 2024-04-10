@@ -17,7 +17,7 @@
 		<p style="font-family: Courier New">
 		Sigma_z = np.array([<br>
 		&emsp;&emsp;[1.2724571228027344]<br>
-		&emsp;&emsp;])<br><br>
+		])<br><br>
 		</p>
 		
 		<h3>Estimating the drag</h3>
@@ -60,16 +60,16 @@
 		A = np.array([<br>
 		&emsp;&emsp;[0,1],<br>
 		&emsp;&emsp;[0,-d/m]<br>
-		&emsp;&emsp;])<br><br>
+		])<br><br>
 
 		B = np.array([<br>
 		&emsp;&emsp;[0],<br>
 		&emsp;&emsp;[-1/m]<br>
-		&emsp;&emsp;])<br><br>
+		])<br><br>
 
-		C = np.array(<br>
-		&emsp;&emsp;[[-1, 0]]<br>
-		&emsp;&emsp;)
+		C = np.array([<br>
+		&emsp;&emsp;[-1, 0]<br>
+		])
 		</p>
 		
 		<p>This webpage was written in a mixture of during and after I implemented the Kalman filter, so it is liable to be a bit of a mess. But I want to take a nice little hindsight moment here to talk about a bug I faced. I was calling a matrix inverse, as given in the Kalman filter function provided. However, it was complaining about it being a zero-dimensional matrix instead of a two-by-two matrix. Rafi got it to be a one-dimensional matrix, or something of the sort. Ignacio then helped me see that I actually had a two-element array for C instead of a one-by-two matrix. And similar things occurred with some of my one-by-one matricies, which were just defined as single-element arrays. By not including an additional, necessary set of square brackets around my <span style="font-family: Courier New">[-1,0]</span> in my C definition, it was just an array and not a matrix.</p>
@@ -80,7 +80,7 @@
 		Sigma_u = np.array([<br>
 		&emsp;&emsp;[10,0],<br>
 		&emsp;&emsp;[0,10]<br>
-		&emsp;&emsp;])<br><br>
+		])<br><br>
 		</p>
 		
 		<h3>Discretizing the A and B matricies</h3>
@@ -107,15 +107,54 @@
 		</p>
 		<p>This gave a value of 0.09871428571428571</p>
 		
-		<h3>Finding mu, the initial state estimation<h3>
+		<h3>Finding mu, the initial state estimation</h3>
 		<p>This took me a bit longer to figure out than I'd like to admit and the inspiration likely came from one of the TA's websites, but this is literally just the initial sensor reading. For the run I was looking at, I had a sensor reading of 2455 millimeters.</p>
+		<p style="font-family: Courier New">
+		# mu: The current estimate of the state vector (mean).<br>
+		mu = np.array([<br>
+		&emsp;&emsp;[front_distance[0]],<br>
+		&emsp;&emsp;[0]<br>
+		])
+		</p>
 		
-		<h3></h3>
+		<h3>The control input u</h3>
+		<p>As many of these have been, this is a fairly strightforward value. I chose to make the control input a constant 0.75 across all iterations of the Kalman filter, as I did all my data gathering at 75% of max motor speed, according to my percentage to PWM value mapping function I made much earlier in the semester and modified as I mentioned in the drag section. This is made to be a one-by-one matrix.</p>
+		<p style="font-family: Courier New">
+		u = np.array([<br>
+		&emsp;&emsp;[0.75]<br>
+		])
+		</p>
+		
+		<h3>Sigma</h3>
+		<p>The final value we need is the Sigma matrix. This is one of those things that is hard to predict. Looking at Larry's website, I decided to borrow his values and adjust if needed. Which, similar to my other Sigma values, did not need adjustment.</p>
+		<p style="font-family: Courier New">
+		# I took this from Larry's website<br>
+		sigma = np.array([<br>
+		&emsp;&emsp;[5**2,0],<br>
+		&emsp;&emsp;[0,5**2]<br>
+		])
+		
+		<h3>Running the Kalman filter</h3>
+		<p>After all of that estimation and gathering data and such, we are finally ready to run our Kalman filter. Here is the code I used to iterate through.</p>
+		<p style="font-family: Courier New">
+		kf_distance_predictions = []<br><br>
+
+		# Run the Kalman filter for each time step<br>
+		for i in range( 0, len( front_time ) ):<br>
+		&emsp;&emsp;mu, sigma = kf(mu, sigma, u, y[i])<br><br>
+		
+		&emsp;&emsp;kf_distance_predictions.append( mu[0] )
+		</p>
+		<img src="images/kalman filter oh no.png" alt="images/Sami.jpg" width=750\>
+		<p>Oh no. The C matrix has its -1 value because we are operating under the assumption that our sensor readings are negative. Which they are. But I modify the values in my robot to make them positive, so I have to reflect that in the C matrix as well to remain consistent.</p>
+		<img src="images/kalman filter prediction.png" alt="images/Sami.jpg" width=750\>
+		<p>This is much better and shows that our Kalman filter now works as hoped. The Kalman filter is the orange plot, while the actual measured data from the car is the the blue plot.</p>
 		
 		
 		
 		<h2>ECE 5160</h2>
 		<h3>Running Kalman filter faster than ToF readings</h3>
+		<p>This task now requires us to conditionally update the Kalman filter, or just simply use it to propagate forward a prediction.</p>
 
 		<h2>Putting Kalman filter on my robot<h2>
 		<p>I plan on doing this! I haven't gotten to it yet but I would like to do it! : )</p>
