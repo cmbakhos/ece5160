@@ -21,7 +21,15 @@
 		</p>
 		
 		<h3>Estimating the drag</h3>
-		<p>To estimate the drag, we need to get the robot up to full speed. It's hard to get to this point without risking many hours to fix a broken robot, so I tried to approach this a bit more cautiously. I used my box and my backpack as cushion, and I tried to get it to get to a point where it would mostly stay stright (my previous open-loop adjustments were for a speed of about 15%, not 75%), which took readjusting my pwm mappings. I also wanted to find a relatively good distance to space it. Too close it would never touch terminal velocity. Too far and it would veer off the straight path and I would lose control. But I also need it to be far enough to not only reach terminal, but maintain terminal velocity for a measurement or two so I could be fairly confident what terminal velocity actually is. However, data is gathered slow, so data resolution is pretty low. Which, funnily enough, is exactly what the Kalman filter is supposed to solve. The following is my first semi-successful attempt at gathering data.</p>
+		<p>To estimate the drag, we need to get the robot up to full speed. It's hard to get to this point without risking many hours to fix a broken robot, so I tried to approach this a bit more cautiously. I used my box and my backpack as cushion, and I tried to get it to get to a point where it would mostly stay stright (my previous open-loop adjustments were for a speed of about 15%, not 75%), which took readjusting my pwm mappings. I also wanted to find a relatively good distance to space it. Too close it would never touch terminal velocity. Too far and it would veer off the straight path and I would lose control. But I also need it to be far enough to not only reach terminal, but maintain terminal velocity for a measurement or two so I could be fairly confident what terminal velocity actually is. However, data is gathered slow, so data resolution is pretty low. Which, funnily enough, is exactly what the Kalman filter is supposed to solve. Below is a slightly humorous picture of my robot facing off against the backpack/box wall, alongside a clearer image of my setup. The car, in reality, started much further back than this.</p>
+		<table>
+			<tr>
+				<td><img src="images/faceoff.png" alt="images/Sami.jpg" width=550\></td>
+				<td><img src="images/kalman filter data gathering setup.png" alt="images/Sami.jpg" width=550\></td>
+			</tr>
+		</table>
+		
+		<p>From this kind of setup came the first semi-successful attempt at gathering data, shown below.</p>
 		<img src="images/estimated velocity versus time first attempt.png" alt="images/Sami.jpg" width=750\>
 		<p>Also, important to note is my code used to calculate this velocity.</p>
 		<p style="font-family: Courier New">
@@ -67,7 +75,7 @@
 		<p>This webpage was written in a mixture of during and after I implemented the Kalman filter, so it is liable to be a bit of a mess. But I want to take a nice little hindsight moment here to talk about a bug I faced. I was calling a matrix inverse, as given in the Kalman filter function provided. However, it was complaining about it being a zero-dimensional matrix instead of a two-by-two matrix. Rafi got it to be a one-dimensional matrix, or something of the sort. Ignacio then helped me see that I actually had a two-element array for C instead of a one-by-two matrix. And similar things occurred with some of my one-by-one matricies, which were just defined as single-element arrays. By not including an additional, necessary set of square brackets around my <span style="font-family: Courier New">[-1,0]</span> in my C definition, it was just an array and not a matrix.</p>
 		
 		<h3>Estimating Sigma_u</h3>
-		<p>We almost have everything we need. We just need to estimate what Sigma_u is. This is quite difficult, so I just chose a small and seemingly reasonable value of 10. I plan on adjusting it if it seems to be leading to unreasonable results (which, I did not need to adjust).</p>
+		<p>We almost have everything we need. We just need to estimate what Sigma_u is. This is quite difficult, so I just chose a small and seemingly reasonable value of 10. I plan on adjusting it if it seems to be leading to unreasonable results (which, in hindsight, I did not need to adjust).</p>
 		<p style="font-family: Courier New">
 		Sigma_u = np.array([<br>
 		&emsp;&emsp;[10,0],<br>
@@ -75,15 +83,36 @@
 		&emsp;&emsp;])<br><br>
 		</p>
 		
-		<h3>Implementing the Kalman filter</h3>
-		<p>To implement the Kalman filter, I need to discretize the A and B matricies. I was honestly confused as to how to do this, until I looked closely at the slides and it soon instantly became clear what needed to be done. They outline a step-by-step derivation for the discretization, though we technically only need the last step of that derivation. This is the incredibly simple implementation in my Python code.</p>
+		<h3>Discretizing the A and B matricies</h3>
+		<p>To implement the Kalman filter, I need to discretize the A and B matricies. This is important because we need to account for the time step, which is what this step does. I was honestly confused as to how to do this, until I looked closely at the slides and it soon instantly became clear what needed to be done. They outline a step-by-step derivation for the discretization, though we technically only need the last step of that derivation. This is the incredibly simple implementation in my Python code.</p>
 		<p style="font-family: Courier New">
-		# Discretize the A and B matricies
-		Ad = np.eye(2) + dt*A
+		# Discretize the A and B matricies<br>
+		Ad = np.eye(2) + dt*A<br>
 		Bd = dt*B
 		</p>
+		<p>Now, to get dt is a fairly straightforward task. It is supposed to be the difference between the sensor readings. Instead of choosing to vary that each time, I figured an average would do well. Of course, when I put this on the robot, this won't really be possible, but I can just use this value and trust that it will likely be good enough. After all, these are all just estimations on top of estimations. The following code shows how I calculated dt.</p>
+		<p style="font-family: Courier New">
+		# Use the front_time readings to estimate the dt, sampling time<br>
+		dt = 0<br>
+		for i in range( 1, len( front_time ) ):<br>
+		&emsp;&emsp;time0 = front_time[i - 1]<br>
+		&emsp;&emsp;time1 = front_time[i]<br>
+		&emsp;&emsp;# Accumulate all the time differences<br>
+		&emsp;&emsp;dt += time1 - time0<br><br>
+
+		# Average the time differences<br>
+		dt /= len( front_distance ) - 1<br>
+		# Scale to be seconds<br>
+		dt /= 1000
+		</p>
+		<p>This gave a value of 0.09871428571428571</p>
 		
-		<p>I also need the initial state estimation. This took me a bit longer to figure out than I'd like to admit, but </p>
+		<h3>Finding mu, the initial state estimation<h3>
+		<p>This took me a bit longer to figure out than I'd like to admit and the inspiration likely came from one of the TA's websites, but this is literally just the initial sensor reading. For the run I was looking at, I had a sensor reading of 2455 millimeters.</p>
+		
+		<h3></h3>
+		
+		
 		
 		<h2>ECE 5160</h2>
 		<h3>Running Kalman filter faster than ToF readings</h3>
