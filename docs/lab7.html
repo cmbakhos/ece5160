@@ -155,6 +155,74 @@
 		<h2>ECE 5160</h2>
 		<h3>Running Kalman filter faster than ToF readings</h3>
 		<p>This task now requires us to conditionally update the Kalman filter, or just simply use it to propagate forward a prediction. To do this, I will include a boolean called <span style="font-family: Courier New">new_reading</span>, which will be true whenever there is a new reading from the time of flight sensor and false whenver there is not a new reading from the time of flight sensor.</p>
+		<p>I use the following code for the new Kalman filter function, which was heavily influenced by Rafi's and Julian's code on their respective websites. It is essentially the same Kalman function, although it accounts for the case where there isn't new data, in which it uses mu_p and sigma_p as mu and sigma respectively.</p>
+		<p style="font-family: Courier New">
+		# Kalman filter different frequency<br>
+		def kf_df( mu, sigma, u, y, new_reading ):<br>
+		mu_p = Ad.dot(mu) + Bd.dot(u)<br>
+		sigma_p = Ad.dot(sigma.dot(Ad.transpose())) + Sigma_u<br><br>
+
+		# If there is a new reading, act as before<br>
+		if( new_reading ):<br>
+		&emsp;&emsp;sigma_m = C.dot(sigma_p.dot(C.transpose())) + Sigma_z<br><br>
+		
+		&emsp;&emsp;kkf_gain = sigma_p.dot(C.transpose().dot(np.linalg.inv(sigma_m)))<br><br>
+	
+		&emsp;&emsp;y_m = y-C.dot(mu_p)<br>
+		&emsp;&emsp;mu = mu_p + kkf_gain.dot(y_m)<br>
+		&emsp;&emsp;sigma=(np.eye(2)-kkf_gain.dot(C)).dot(sigma_p)<br><br>
+
+		# If there is no new reading, just use mu_p and sigma_p<br>
+		else:<br>
+		&emsp;&emsp;mu = mu_p<br>
+		&emsp;&emsp;sigma= sigma_p<br><br>
+
+		# Return the updated estimate of the state vector and estimate of the covariance matrix of the state vector<br>
+		return mu,sigma
+		</p>
+		<p>For the code that runs this function repeatedly so as to simulate the Kalman filter on the robot, I use the following code. This is heavily inspired by Julian's code on his website, but of course modified a little bit. I tried to explain it in depth in the code comments shown below, so I will spare you the duplicate explanation.</p>
+		<p style="font-family: Courier New">
+		# dt for this is consistent because I am choosing to make it consistent for simulation's sake<br>
+		# It would certainly vary on the robot.<br>
+		# This is in units of seconds<br>
+		dt = 0.01<br>
+		# Rediscretize the A and B matricies with the established dt<br>
+		Ad = np.eye(2) + dt*A<br>
+		Bd = dt*B<br><br>
+
+		# Empty the array to store our kalman filter predictions<br>
+		kf_distance_predictions = []<br><br>
+
+		# Create a variable to keep track of which sensor reading we are currently using<br>
+		j = 0<br><br>
+
+		# Create a variable to tell the Kalman filter (different frequency) function <br>
+		new_reading = False<br><br>
+
+		# Run the Kalman filter for each time step<br>
+		# i starts at the first time of the simulation, which was the first time of the data gathering<br>
+		# it goes to the last time of the data gathering (nothing stopping me from going at least a bit further, technically)<br>
+		# It increments by dt scaled by 1000, to put it in units of milliseconds (and casted to int)<br>
+		for i in range( front_time[0], front_time[len( front_time ) - 1], int(dt*1000) ):<br>
+		&emsp;&emsp;# Check if there is a new reading (if i >= the front time of the next reading, then in<br>
+		&emsp;&emsp;# simulation it is ready). Heavily inspired from Julian's code.<br>
+		&emsp;&emsp;if( front_time[j + 1] &lt;= i ):<br>
+		&emsp;&emsp;&emsp;&emsp;# We are now on the new sensor reading<br>
+		&emsp;&emsp;&emsp;&emsp;j += 1<br>
+		&emsp;&emsp;&emsp;&emsp;new_reading = True<br>
+		&emsp;&emsp;else:<br>
+		&emsp;&emsp;&emsp;&emsp;# No new sensor reading yet<br>
+		&emsp;&emsp;&emsp;&emsp;new_reading = False<br><br>
+
+		&emsp;&emsp;# Call the kalman filter different frequency function, which takes into account new or no new readings<br>
+		&emsp;&emsp;mu, sigma = kf_df(mu, sigma, u, y[j], new_reading)<br><br>
+
+		&emsp;&emsp;# Append to the array we cleared earlier<br>
+		&emsp;&emsp;kf_distance_predictions.append( mu[0] )
+		</p>
+		<p>What this ends up looking like is the following. I changed a few parameters to have it behave a bit better, but I couldn't seem to fix the Kalman filter's prediction based on the first reading for some reason. I am not quite sure what causes it to behave this way, but my best guesses are that it is increasing while all other distances are decreasing, or just that it is the first and there's some edge case that I am missing. I changed Sigma_u's values of 10 to values of 25, and Sigma has its values of 25 go to 20.</p>
+		<img src="images/kalman filter different frequency.png" alt="images/Sami.jpg" width=750\>
+		<p>And with this, a working Kalman filter in simulation! How exciting : D</p>
 
 		<h2>Putting the Kalman filter on my robot</h2>
 		<p>I plan on doing this! I haven't gotten to it yet but I would like to do it! : )</p>
