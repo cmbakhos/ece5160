@@ -7,7 +7,132 @@
 	<body>
 		<h1>Lab 8</h1>
 		<p><a href="lab7.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab9.html">Next lab.</a></p>
-		<p>Alas, my friends, this semester has been the death of me. Or, perhaps more accurately, my inability to handle the stress and workload of the semester has brought me to the point of not finishing many of my labs, and it has taken me so long to finish <a href="lab7.html">lab 7</a> that I have completely missed lab 8. I have been advised to start work on <a href="lab9.html">lab 9</a> so as to have the arena available to me instead of working on lab 8. So, that is what I am doing here. Feel free to carry onto the next lab, and I hope I am able to catch up enough so as to work on lab 8 and finish it soon enough.</p>
+		<p>This lab, along with most of my other labs, was greatly hindered by my robots supreme inability to turn. However, I can triumphantly say that there has been a great stride in this regard. I was talking with my friend Sami about my robot and showing her that it could barely manage to turn at all, even at max motor speed. She asked me if the motors were actually at max speed. This made me realize that, perhaps they weren't. I decided to start exploring that, but before that, Sami additionally suggested I hold the robot to see if it was a weight issue. And so I tested the robot turning whilst I suspended it with pipe cleaners. This, shown below, demonstrates that the motors aren't powerful enough to overcome the weight and friction of the robot. Once we remove the weight, it turns just fine. However, there isn't really a reasonable way around this, unfortunately.</p>
+		
+		<video width="300" controls>
+			<source src="videos/Pipe Cleaners.mp4">
+			The video is not working.
+		</video>
+		
+		<p>Being that there wasn't a viable way to improve the robot in this regard, I went back to the idea of the motor speed. Since the beginning, I have been using two functions to help me with the wheel speeds: <span style="font-family: Courier New">left_pwm_map</span> and <span style="font-family: Courier New">right_pwm_map</span>. These took percentages and outputted a PWM value. This was great and made it pretty easy to control the motors and make my car go straight. However, it never really hit me that by doing this, I was setting the effective maximum speed for the motors below where they realistically could go, all for the sake of equalization.</p>
+		<p>This issue I have been facing, with my robot not being able to turn, has plagued me since <a href="lab6.html">lab 6</a>. Now, though, I can finally have my robot turn semi-semi-reasonably (and as you will see later, it allows for some sort of drift stunt to be performed). It honestly still isn't super fast, but it actually indeed does turn, which is a really massive victory in my book. Below I show two videos: one of my robot's max turning speed with the PWM map functions and one of my robot's true max turning speed with raw PWM values of 255. They are pretty similar, but one set of wheels turns consistently in the video where I set the motors to both 255, whereas in the other video with "100%" motor speed, one set barely turns. As a fun little side note, before I put tape on the wheels, it didn't even turn at all, so this is a major improvement, really.</p>
+		<table>
+			<tr>
+				<td><video width="300" controls><source src="videos/Turning Percentage.mp4">The video is not working.</video></td>
+				<td><video width="300" controls><source src="videos/Turning Raw PWM.mp4">The video is not working.</video></td>
+			</tr>
+		</table>
+		
+		<p>I also just want to show the code for the PWM maps, because a closer look shows how bad this really was.</p>
+		
+		<p style="font-family: Courier New">
+		// Map an input from 0 to 100 to a PWM value for the car, for the right<br> 
+		int right_pwm_map( float percentage ) {<br>
+		&emsp;&emsp;if( percentage &lt;= 5 ) {<br>
+		&emsp;&emsp;&emsp;&emsp;return 0;<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;else if( percentage &gt; 5 && percentage &lt;= 20 ) {<br>
+		&emsp;&emsp;&emsp;&emsp;return (int) ( 1.75*( (float) percentage ) ) + 80;<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;else if( percentage &gt; 20 && percentage &lt;= 100 ) {<br>
+		&emsp;&emsp;&emsp;&emsp;return (int) ( 0.95*( (float) percentage ) ) + 75;<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;else {<br>
+		&emsp;&emsp;&emsp;&emsp;return 100;<br>
+		&emsp;&emsp;}<br>
+		}<br><br>
+
+		// Map an input from 0 to 100 to a PWM value for the car, for the left<br>
+		int left_pwm_map( float percentage ) {<br>
+		&emsp;&emsp;if( percentage &lt;= 5 ) {<br>
+		&emsp;&emsp;&emsp;&emsp;return 0;<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;else if( percentage &gt; 5 &amp;&amp; percentage &lt;= 20 ) {<br>
+		&emsp;&emsp;&emsp;&emsp;return (int) ( 0.92307692307*( (float) percentage ) ) + 62;<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;else if( percentage &gt; 20 &amp;&amp; percentage &lt;= 100 ) {<br>
+		&emsp;&emsp;&emsp;&emsp;return (int) ( 1.00*( (float) percentage ) ) + 62;<br>
+		&emsp;&emsp;}<br>
+		&emsp;&emsp;else {<br>
+		&emsp;&emsp;&emsp;&emsp;return 100;<br>
+		&emsp;&emsp;}<br>
+		}
+		</p>
+		
+		<p>Taking a look at what might happen if I input a 100 into the function <span style="font-family: Courier New">right_pwm_map</span>, we can imagine that we take the if statements all the way down to the condition checking if we're between 20 exclusive and 100, inclusive. We will get a value of 0.95*100+75, giving us a PWM value of 170, far below the maximum value of 255. It gets worse, though. If we're considering that because we're using a float, an input of 100 could actually fall into the else condition, leading us to get a PWM value of 100. With regard to the function <span style="font-family: Courier New">left_pwm_map</span>, we could either get 162 or 100, depending. This is very not good for my turning. I really thought I was getting 100%, but 100% is really, in the best case, on the order of 60 to 70 percent.</p>
+		
+		<p>With this new (and slightly improved!) turning in place, I now had the courage to start trying to do a stunt. I just started by sending it separate commands. First, sending it a command to go forward, then to turn, then to go forward again.</p>
+		
+		<p>And this is the Python code I used to manually execute the stunt.</p>
+		
+		<p>First, I make the car go forward.</p>
+		<p style="font-family: Courier New">
+		ble.send_command( CMD.DRIVE255, "200|200" )<br>
+		print( ble.receive_string( ble.uuid['RX_STRING'] ) )
+		</p>
+		<p>Then I make it turn when it's close enough to the wall.</p>
+		<p style="font-family: Courier New">
+		ble.send_command( CMD.DRIVE255, "255|-255" )<br>
+		print( ble.receive_string( ble.uuid['RX_STRING'] ) )
+		</p>
+		<p>Then, I make the car go forward again, but now facing the other direction, ideally.</p>
+		<p style="font-family: Courier New">
+		ble.send_command( CMD.DRIVE255, "200|200" )<br>
+		print( ble.receive_string( ble.uuid['RX_STRING'] ) )
+		</p>
+		<p>Lastly, I send a command to make the car stop.</p>
+		<p style="font-family: Courier New">
+		ble.send_command( CMD.STOP_MOTORS, "" )<br>
+		print( ble.receive_string( ble.uuid['RX_STRING'] ) )
+		</p>
+		
+		<table>
+			<tr>
+				<td><figure>
+					<video width="500" controls><source src="videos/Crispy Croak.mp4">The video is not working.</video>
+					<figcaption>This one I let it do a whole spin.</figcaption>
+				</figure></td>
+				<td><figure>
+					<video width="500" controls><source src="videos/Manual Stunt 1.mp4">The video is not working.</video>
+					<figcaption>This one I let it rotate a bit too much.</figcaption>
+				</figure></td>
+			</tr>
+		</table>
+		
+		<p>With this, it was actually able to do the stunt. However, I wanted it to be able to do it without me feeding it each command, as that is the task at hand. I tried to program a sequence, however, it seemed to not quite work and instead just head directly into the turning instead of going forward and then turning when it is close enough to a wall.</p>
+		
+		<p>However, before delving further into this issue, though, I decided to try a different surface other than carpet (probably to procrastinate debugging lol), the result of which absolutely surprised me. Turns out the desk tables in lecture hall 221 (I think) in the Breazzano Family Center are a pretty good surface now that I fixed the motor PWM issue. These kinds of surfaces (tile, linolium, and such) did not work well at all before I fixed the motor PWM values. But now, it really does turn as it should have.</p>
+		
+		<video width="300" controls>
+			<source src="videos/Table Turning.mp4">
+			The video is not working.
+		</video>
+		
+		<p>However, back to the more relevant thing at hand haha. It immediately skipped to the turning part of the stunt because the distance sensors were not gathering data. Previously, I had set my IMU to always passively collect data for the sake of keeping track of the current yaw. This is necessary because we only really have access to the gyroscope's delta yaw, so I always need to collect that data. However, I assumed that my distance sensors were always passively collecting data (with a boolean to disable even the passive collection of data). To fix this, I wanted to make a global variable <span style="font-family: Courier New">current_front_distance_reading</span> and a global variable <span style="font-family: Courier New">current_back_distance_reading</span> to keep track of the distance readings, and two global booleans to keep track of whether or not we want to save those distance readings. One for front, one for back. However, restructuring the code started to be too much, and it would break other previous functionalities. With more time, I would have actually followed through with this. This is one of those things I will unfortunately have add to <a href="ideas.html">my extra ideas page</a> and probably leave to be undone.</p>
+		
+		<p>To actually solve it, I just set the gather sensor data flag to true for the front sensor. It realistically wouldn't fill up the array for a long time, so for the sake of the stunt runs, this is a more than adequate solution, even if not my ideal one.</p>
+		
+		<p>Looking back at my code, it actually seems that none of that had to do with the problem at all, but I don't want to delete that because it's work I did and it shows this part of my debugging process. I actually copied my code to grab the front distance sensor data and put it in my code that runs during the stunt, so that is not the problem. The problem is that I save the data, increment the index of the data array, that new index to index into the data array and make a decision. My car is making a decision using junk data. To fix this, I simply just used a global variable as I previously mentioned. I don't quite need to save the distance data anyway. Doing this solved the issue.</p>
+		
+		<p>Now that I got the distance working, I realized I didn't really want to have to deal with the gyroscope and the IMU. With this, I could just set the car to turn, wait a certain number of milliseconds, and start driving again. I set the car to wait 500 milliseconds, and this is the result.</p>
+		
+		<video width="300" controls>
+			<source src="videos/im kurd.mp4">
+			The video is not working.
+		</video>
+		
+		<p>In the excitement of it all, I turned the recording off too soon. But I figured I could use this as an opportunity to adjust a bit and try to get it straigher. The delay of 500 milliseconds was just a bit too long. So, I lowered it about 50 milliseconds.</p>
+		
+		<video width="600" controls>
+			<source src="videos/im kurd 2.mp4">
+			The video is not working.
+		</video>
+		
+		<p>This turned out to be a bit too little, still. However, the robot definitely can perform the stunt, so I figured this is a good place to wrap it up. Overall, it took a lot of effort to get this to actually work, mostly regarding fixing the turning. I realize the semester is over, but had I more time, I totally could have gotten some of the other labs to actually work. Thank you for a good semester : )</p>
+		
+		<p>By the way, this is a picture of my friend Sami, in case you were curious.</p>
+		<img src="images/Sami.jpg" alt="images/Sami.jpg" width=200\>
+		
 		<p><a href="lab7.html">Previous lab.</a> <a href="index.html">Return home.</a> <a href="lab9.html">Next lab.</a></p>
 	</body>
 </html>
